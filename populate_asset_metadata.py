@@ -49,6 +49,33 @@ def fetch_commodities_metadata():
         print(f"✗ Error fetching commodities metadata: {e}")
         return []
 
+def fetch_indices_metadata():
+    """
+    Fetch indices list with metadata from FMP API
+    Returns list of index metadata dictionaries
+    """
+    url = "https://financialmodelingprep.com/stable/index-list"
+    
+    params = {
+        'apikey': API_KEY
+    }
+    
+    try:
+        response = requests.get(url, params=params, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+        
+        if isinstance(data, list):
+            print(f"✓ Fetched metadata for {len(data)} indices")
+            return data
+        else:
+            print("✗ Unexpected response format from index-list endpoint")
+            return []
+            
+    except requests.exceptions.RequestException as e:
+        print(f"✗ Error fetching indices metadata: {e}")
+        return []
+
 def normalize_currency(currency):
     """Normalize currency code (USX -> USD)"""
     if currency == 'USX':
@@ -159,13 +186,31 @@ def main():
     
     print()
     
+    # Fetch indices metadata from API
+    print("--- Index Assets (API) ---")
+    indices_data = fetch_indices_metadata()
+    
+    # Transform indices data to match our metadata format
+    index_metadata = []
+    for item in indices_data:
+        index_metadata.append({
+            'symbol': item.get('symbol'),
+            'name': item.get('name'),
+            'asset_type': 'index',
+            'exchange': item.get('exchange'),
+            'currency': item.get('currency', 'USD')
+        })
+    
+    print()
+    
     # Combine all metadata
-    all_metadata = crypto_metadata + commodity_metadata
+    all_metadata = crypto_metadata + commodity_metadata + index_metadata
     
     print(f"--- Inserting into Database ---")
     print(f"Total assets to process: {len(all_metadata)}")
     print(f"  - Crypto: {len(crypto_metadata)}")
-    print(f"  - Commodities: {len(commodity_metadata)}\n")
+    print(f"  - Commodities: {len(commodity_metadata)}")
+    print(f"  - Indices: {len(index_metadata)}\n")
     
     # Insert into database
     conn = get_db_connection()

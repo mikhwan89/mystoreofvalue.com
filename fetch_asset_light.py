@@ -72,6 +72,35 @@ def fetch_commodities_list():
         print(f"✗ Error fetching commodities list: {e}")
         return []
 
+def fetch_indices_list():
+    """
+    Fetch list of available indices from FMP API
+    Returns list of index symbols
+    """
+    url = "https://financialmodelingprep.com/stable/index-list"
+    
+    params = {
+        'apikey': API_KEY
+    }
+    
+    try:
+        response = requests.get(url, params=params, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+        
+        if isinstance(data, list):
+            # Extract symbols from the list
+            symbols = [item.get('symbol') for item in data if item.get('symbol')]
+            print(f"✓ Found {len(symbols)} available indices")
+            return symbols
+        else:
+            print("✗ Unexpected response format from index-list endpoint")
+            return []
+            
+    except requests.exceptions.RequestException as e:
+        print(f"✗ Error fetching indices list: {e}")
+        return []
+
 def get_db_connection():
     """Create a new database connection"""
     return psycopg2.connect(**DB_CONFIG)
@@ -304,12 +333,17 @@ def fetch_and_store_symbol(symbol, daily_update=False, asset_type='crypto'):
     Args:
         symbol: Asset symbol to fetch
         daily_update: If True, fetch last 10 days. If False, fetch from 2009
-        asset_type: 'crypto' or 'commodity' to determine which table to use
+        asset_type: 'crypto', 'commodity', or 'index' to determine which table to use
     """
     print(f"\n--- Processing {symbol} ({asset_type}) ---")
     
     # Determine table name based on asset type
-    table_name = 'commodity_prices' if asset_type == 'commodity' else 'crypto_prices'
+    if asset_type == 'commodity':
+        table_name = 'commodity_prices'
+    elif asset_type == 'index':
+        table_name = 'index_prices'
+    else:
+        table_name = 'crypto_prices'
     
     data = fetch_historical_price_data(symbol, daily_update)
     
@@ -356,12 +390,20 @@ def main():
     commodity_symbols = fetch_commodities_list()
     
     if not commodity_symbols:
-        print("⚠ No commodities found, will only process crypto")
+        print("⚠ No commodities found, will skip commodities")
+    
+    # Fetch available indices dynamically
+    print("\n--- Fetching available indices ---")
+    index_symbols = fetch_indices_list()
+    
+    if not index_symbols:
+        print("⚠ No indices found, will skip indices")
     
     # Combine all symbols with their asset types
     all_assets = (
         [(symbol, 'crypto') for symbol in crypto_symbols] +
-        [(symbol, 'commodity') for symbol in commodity_symbols]
+        [(symbol, 'commodity') for symbol in commodity_symbols] +
+        [(symbol, 'index') for symbol in index_symbols]
     )
     
     total_symbols = len(all_assets)
@@ -369,7 +411,7 @@ def main():
     start_time = time.time()
     
     # Use ThreadPoolExecutor for parallel API calls
-    workers_text = f"{total_symbols} asset(s) ({len(crypto_symbols)} crypto + {len(commodity_symbols)} commodities) with {MAX_WORKERS} workers"
+    workers_text = f"{total_symbols} asset(s) ({len(crypto_symbols)} crypto + {len(commodity_symbols)} commodities + {len(index_symbols)} indices) with {MAX_WORKERS} workers"
     print(f"\n🚀 Starting parallel data fetch for {workers_text}...\n")
     
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
