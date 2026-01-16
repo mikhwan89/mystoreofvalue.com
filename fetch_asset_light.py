@@ -43,30 +43,64 @@ def update_stats(key, value=1):
     with stats_lock:
         stats[key] += value
 
+def fetch_commodities_list():
+    """
+    Fetch list of available commodities from FMP API
+    Returns list of commodity symbols
+    """
+    url = "https://financialmodelingprep.com/stable/commodities-list"
+    
+    params = {
+        'apikey': API_KEY
+    }
+    
+    try:
+        response = requests.get(url, params=params, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+        
+        if isinstance(data, list):
+            # Extract symbols from the list
+            symbols = [item.get('symbol') for item in data if item.get('symbol')]
+            print(f"✓ Found {len(symbols)} available commodities")
+            return symbols
+        else:
+            print("✗ Unexpected response format from commodities-list endpoint")
+            return []
+            
+    except requests.exceptions.RequestException as e:
+        print(f"✗ Error fetching commodities list: {e}")
+        return []
+
 def get_db_connection():
     """Create a new database connection"""
     return psycopg2.connect(**DB_CONFIG)
 
-def fill_missing_dates(symbol, conn):
+def fill_missing_dates(symbol, conn, table_name='crypto_prices'):
     """
     Fill missing dates in the database with previous available data (forward-fill)
     This handles gaps in API data by carrying forward the last known price
+    
+    Args:
+        symbol: Asset symbol
+        conn: Database connection
+        table_name: Table to fill (crypto_prices or commodity_prices)
     """
     cursor = conn.cursor()
     
     try:
         # Get the date range and find gaps
-        cursor.execute("""
+        cursor.execute(f"""
             WITH date_series AS (
                 SELECT generate_series(
-                    (SELECT MIN(date)::date FROM crypto_prices WHERE symbol = %s),
-                    (SELECT MAX(date)::date FROM crypto_prices WHERE symbol = %s),
+                    (SELECT MIN(date)::date FROM {table_name} WHERE symbol = %s),
+                    (SELECT MAX(date)::date FROM {table_name} WHERE symbol = %s),
                     '1 day'::interval
                 )::date AS expected_date
             ),
             existing_dates AS (
                 SELECT date::date AS existing_date 
-                FROM crypto_prices 
+                FROM {table_name}
                 WHERE symbol = %s
             ),
             missing_dates AS (
@@ -90,14 +124,14 @@ def fill_missing_dates(symbol, conn):
         
         # For each missing date, fill with previous available data
         for (missing_date,) in missing_dates:
-            cursor.execute("""
-                INSERT INTO crypto_prices (symbol, date, price, volume)
+            cursor.execute(f"""
+                INSERT INTO {table_name} (symbol, date, price, volume)
                 SELECT 
                     symbol,
                     %s::date,
                     price,
                     0  -- Set volume to 0 for filled dates to distinguish from real data
-                FROM crypto_prices
+                FROM {table_name}
                 WHERE symbol = %s 
                 AND date < %s
                 ORDER BY date DESC
@@ -181,10 +215,15 @@ def fetch_historical_price_data(symbol, daily_update=False, retries=0):
         update_stats('errors')
         return []
 
-def insert_batch_to_db(batch_data, conn):
+def insert_batch_to_db(batch_data, conn, table_name='crypto_prices'):
     """
     Insert a batch of data efficiently using execute_batch
     Uses ON CONFLICT to update existing records (which triggers updated_at)
+    
+    Args:
+        batch_data: List of data records to insert
+        conn: Database connection
+        table_name: Table to insert into (crypto_prices or commodity_prices)
     """
     if not batch_data:
         return 0, 0, 0
@@ -200,15 +239,15 @@ def insert_batch_to_db(batch_data, conn):
         
         # Use execute_batch with UPSERT logic
         # ON CONFLICT UPDATE will trigger the updated_at trigger
-        execute_batch(cursor, """
-            INSERT INTO crypto_prices (symbol, date, price, volume)
+        execute_batch(cursor, f"""
+            INSERT INTO {table_name} (symbol, date, price, volume)
             VALUES (%s, %s, %s, %s)
             ON CONFLICT (symbol, date) 
             DO UPDATE SET 
                 price = EXCLUDED.price,
                 volume = EXCLUDED.volume
-            WHERE crypto_prices.price != EXCLUDED.price 
-               OR crypto_prices.volume != EXCLUDED.volume
+            WHERE {table_name}.price != EXCLUDED.price 
+               OR {table_name}.volume != EXCLUDED.volume
         """, values, page_size=BATCH_SIZE)
         
         # Get row count (total affected rows)
@@ -227,8 +266,15 @@ def insert_batch_to_db(batch_data, conn):
     finally:
         cursor.close()
 
-def process_and_insert_data(data, symbol):
-    """Process fetched data and insert into database in batches, then fill missing dates"""
+def process_and_insert_data(data, symbol, table_name='crypto_prices'):
+    """
+    Process fetched data and insert into database in batches, then fill missing dates
+    
+    Args:
+        data: List of price records
+        symbol: Asset symbol
+        table_name: Table to insert into (crypto_prices or commodity_prices)
+    """
     if not data:
         return
     
@@ -238,26 +284,37 @@ def process_and_insert_data(data, symbol):
         # Process in batches for memory efficiency
         for i in range(0, len(data), BATCH_SIZE):
             batch = data[i:i + BATCH_SIZE]
-            affected, _, _ = insert_batch_to_db(batch, conn)
+            affected, _, _ = insert_batch_to_db(batch, conn, table_name)
             update_stats('inserted', affected)
             
             if (i // BATCH_SIZE + 1) % 5 == 0:
                 print(f"  → Processed {i + len(batch)}/{len(data)} records...")
         
         # After inserting all data, fill missing dates with forward-fill
-        filled = fill_missing_dates(symbol, conn)
+        filled = fill_missing_dates(symbol, conn, table_name)
         update_stats('inserted', filled)
     
     finally:
         conn.close()
 
-def fetch_and_store_symbol(symbol, daily_update=False):
-    """Fetch data for a specific symbol and store it"""
-    print(f"\n--- Processing {symbol} ---")
+def fetch_and_store_symbol(symbol, daily_update=False, asset_type='crypto'):
+    """
+    Fetch data for a specific symbol and store it
+    
+    Args:
+        symbol: Asset symbol to fetch
+        daily_update: If True, fetch last 10 days. If False, fetch from 2009
+        asset_type: 'crypto' or 'commodity' to determine which table to use
+    """
+    print(f"\n--- Processing {symbol} ({asset_type}) ---")
+    
+    # Determine table name based on asset type
+    table_name = 'commodity_prices' if asset_type == 'commodity' else 'crypto_prices'
+    
     data = fetch_historical_price_data(symbol, daily_update)
     
     if data:
-        process_and_insert_data(data, symbol)
+        process_and_insert_data(data, symbol, table_name)
         return True
     return False
 
@@ -288,48 +345,51 @@ def main():
     
     print("✓ Environment variables loaded")
     
-    # Define symbols to fetch (supports multiple asset types)
-    symbols = [
+    # Define crypto symbols to fetch
+    crypto_symbols = [
         'BTCUSD',   # Bitcoin (Crypto)
         'ETHUSD',   # Ethereum (Crypto)
-        # Add more symbols here:
-        # Crypto:
-        # 'SOLUSD',   # Solana
-        # Stocks:
-        # 'AAPL',     # Apple
-        # 'GOOGL',    # Google
-        # Indices:
-        # '^GSPC',    # S&P 500
-        # '^DJI',     # Dow Jones
-        # Commodities:
-        # 'GCUSD',    # Gold
-        # 'CLUSD',    # Crude Oil
     ]
+    
+    # Fetch available commodities dynamically
+    print("\n--- Fetching available commodities ---")
+    commodity_symbols = fetch_commodities_list()
+    
+    if not commodity_symbols:
+        print("⚠ No commodities found, will only process crypto")
+    
+    # Combine all symbols with their asset types
+    all_assets = (
+        [(symbol, 'crypto') for symbol in crypto_symbols] +
+        [(symbol, 'commodity') for symbol in commodity_symbols]
+    )
+    
+    total_symbols = len(all_assets)
     
     start_time = time.time()
     
     # Use ThreadPoolExecutor for parallel API calls
-    workers_text = f"{len(symbols)} symbol(s) with {MAX_WORKERS} workers"
+    workers_text = f"{total_symbols} asset(s) ({len(crypto_symbols)} crypto + {len(commodity_symbols)} commodities) with {MAX_WORKERS} workers"
     print(f"\n🚀 Starting parallel data fetch for {workers_text}...\n")
     
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
-        # Submit all tasks
-        future_to_symbol = {
-            executor.submit(fetch_and_store_symbol, symbol, daily_update): symbol 
-            for symbol in symbols
+        # Submit all tasks with their asset types
+        future_to_asset = {
+            executor.submit(fetch_and_store_symbol, symbol, daily_update, asset_type): (symbol, asset_type)
+            for symbol, asset_type in all_assets
         }
         
         # Process completed tasks
-        for future in as_completed(future_to_symbol):
-            symbol = future_to_symbol[future]
+        for future in as_completed(future_to_asset):
+            symbol, asset_type = future_to_asset[future]
             try:
                 success = future.result()
                 if success:
-                    print(f"✓ Completed {symbol}")
+                    print(f"✓ Completed {symbol} ({asset_type})")
                 else:
-                    print(f"⚠ No data for {symbol}")
+                    print(f"⚠ No data for {symbol} ({asset_type})")
             except Exception as e:
-                print(f"✗ Exception for {symbol}: {e}")
+                print(f"✗ Exception for {symbol} ({asset_type}): {e}")
                 update_stats('errors')
     
     elapsed_time = time.time() - start_time
