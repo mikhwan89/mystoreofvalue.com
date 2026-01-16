@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
 import os
+import sys
 import requests
 import psycopg2
 from psycopg2.extras import execute_batch
-from datetime import datetime
+from datetime import datetime, timedelta
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dotenv import load_dotenv
 import time
@@ -122,16 +123,27 @@ def get_db_connection():
     """Create a new database connection"""
     return psycopg2.connect(**DB_CONFIG)
 
-def fetch_historical_price_data(symbol, retries=0):
+def fetch_historical_price_data(symbol, daily_update=False, retries=0):
     """
     Fetch historical EOD price data from Financial Modeling Prep API (light endpoint)
     Returns daily data: symbol, date, price, volume
+    
+    Args:
+        symbol: Asset symbol to fetch
+        daily_update: If True, only fetch last 10 days. If False, fetch from 2009
+        retries: Current retry count
     """
     url = "https://financialmodelingprep.com/stable/historical-price-eod/light"
     
+    # Determine the 'from' date based on mode
+    if daily_update:
+        from_date = (datetime.now() - timedelta(days=10)).strftime('%Y-%m-%d')
+    else:
+        from_date = '2009-01-01'  # Full historical data
+    
     params = {
         'symbol': symbol,
-        'from': '2009-01-01',  # Fetch data from Bitcoin genesis
+        'from': from_date,
         'apikey': API_KEY
     }
     
@@ -143,7 +155,7 @@ def fetch_historical_price_data(symbol, retries=0):
             if retries < MAX_RETRIES:
                 print(f"⚠ Rate limit hit for {symbol}. Waiting {API_RETRY_DELAY}s... (Retry {retries+1}/{MAX_RETRIES})")
                 time.sleep(API_RETRY_DELAY)
-                return fetch_historical_price_data(symbol, retries + 1)
+                return fetch_historical_price_data(symbol, daily_update, retries + 1)
             else:
                 print(f"✗ Max retries reached for {symbol}")
                 return []
@@ -239,10 +251,10 @@ def process_and_insert_data(data, symbol):
     finally:
         conn.close()
 
-def fetch_and_store_symbol(symbol):
+def fetch_and_store_symbol(symbol, daily_update=False):
     """Fetch data for a specific symbol and store it"""
     print(f"\n--- Processing {symbol} ---")
-    data = fetch_historical_price_data(symbol)
+    data = fetch_historical_price_data(symbol, daily_update)
     
     if data:
         process_and_insert_data(data, symbol)
@@ -252,8 +264,14 @@ def fetch_and_store_symbol(symbol):
 def main():
     """Main function with parallel processing"""
     
+    # Check for daily update mode
+    daily_update = '--daily' in sys.argv or '--update' in sys.argv
+    
+    mode_text = "Daily Update Mode (Last 10 Days)" if daily_update else "Full Historical Mode (From 2009)"
+    
     print("=" * 70)
     print("Asset Historical Price Data Fetcher - High Performance Mode")
+    print(f"Mode: {mode_text}")
     print("Supports: Crypto, Stocks, Indices, Commodities")
     print(f"VM Resources: 8 cores, 32GB RAM | Workers: {MAX_WORKERS}")
     print("Data: Daily EOD (End of Day) prices - Light endpoint (4 columns)")
@@ -273,9 +291,9 @@ def main():
     # Define symbols to fetch (supports multiple asset types)
     symbols = [
         'BTCUSD',   # Bitcoin (Crypto)
+        'ETHUSD',   # Ethereum (Crypto)
         # Add more symbols here:
         # Crypto:
-        # 'ETHUSD',   # Ethereum
         # 'SOLUSD',   # Solana
         # Stocks:
         # 'AAPL',     # Apple
@@ -291,12 +309,13 @@ def main():
     start_time = time.time()
     
     # Use ThreadPoolExecutor for parallel API calls
-    print(f"\n🚀 Starting parallel data fetch for {len(symbols)} symbol(s) with {MAX_WORKERS} workers...\n")
+    workers_text = f"{len(symbols)} symbol(s) with {MAX_WORKERS} workers"
+    print(f"\n🚀 Starting parallel data fetch for {workers_text}...\n")
     
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
         # Submit all tasks
         future_to_symbol = {
-            executor.submit(fetch_and_store_symbol, symbol): symbol 
+            executor.submit(fetch_and_store_symbol, symbol, daily_update): symbol 
             for symbol in symbols
         }
         
