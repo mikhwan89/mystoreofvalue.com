@@ -55,18 +55,34 @@ EXCHANGE_CURRENCY_MAP = {
     'ZA': 'ZAR',      # South Africa
 }
 
+# Special exchange mappings (for exchanges without proper country codes)
+SPECIAL_EXCHANGE_CURRENCY = {
+    'DXE': 'EUR',     # CBOE Europe (Amsterdam-based, primarily EUR)
+    'EURONEXT': 'EUR',
+    'XETRA': 'EUR',
+    'LSE': 'GBP',     # London Stock Exchange
+    'TSX': 'CAD',     # Toronto Stock Exchange
+    'ASX': 'AUD',     # Australian Securities Exchange
+}
+
 def get_db_connection():
     """Create a new database connection"""
     return psycopg2.connect(**DB_CONFIG)
 
 def get_currency_for_exchange(exchange_code, country_code):
     """
-    Determine currency based on exchange country code
+    Determine currency based on exchange code or country code
+    Prioritizes exchange-specific mapping over country mapping
     """
-    if country_code in EXCHANGE_CURRENCY_MAP:
+    # First check if exchange has a special mapping
+    if exchange_code in SPECIAL_EXCHANGE_CURRENCY:
+        return SPECIAL_EXCHANGE_CURRENCY[exchange_code]
+    
+    # Then check country code mapping
+    if country_code and country_code in EXCHANGE_CURRENCY_MAP:
         return EXCHANGE_CURRENCY_MAP[country_code]
     
-    # Default to USD if country not in mapping
+    # Default to USD if no mapping found
     return 'USD'
 
 def fetch_exchanges_from_db():

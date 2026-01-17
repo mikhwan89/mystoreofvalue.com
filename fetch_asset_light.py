@@ -131,7 +131,34 @@ def get_db_connection():
     """Create a new database connection"""
     return psycopg2.connect(**DB_CONFIG)
 
-def fill_missing_dates(symbol, conn, table_name='crypto_prices'):
+def is_holiday_for_exchange(exchange, check_date=None):
+    """
+    Check if a given date is a holiday for a specific exchange
+    If check_date is None, checks today
+    """
+    if check_date is None:
+        from datetime import date
+        check_date = date.today()
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            SELECT holiday_name
+            FROM exchange_holidays
+            WHERE exchange = %s
+            AND holiday_date = %s
+        """, (exchange, check_date))
+        
+        result = cursor.fetchone()
+        return result is not None
+        
+    finally:
+        cursor.close()
+        conn.close()
+
+def fill_missing_dates(symbol, conn, table_name='crypto_prices', extend_to_today=False):
     """
     Fill missing dates in the database with previous available data (forward-fill)
     This handles gaps in API data by carrying forward the last known price
@@ -139,33 +166,61 @@ def fill_missing_dates(symbol, conn, table_name='crypto_prices'):
     Args:
         symbol: Asset symbol
         conn: Database connection
-        table_name: Table to fill (crypto_prices or commodity_prices)
+        table_name: Table to fill (crypto_prices, commodity_prices, index_prices, stock_prices)
+        extend_to_today: If True, extend forward-fill to today (for daily updates).
+                        If False, only fill gaps between existing data (for initial fill)
     """
     cursor = conn.cursor()
     
     try:
-        # Get the date range and find gaps
-        cursor.execute(f"""
-            WITH date_series AS (
-                SELECT generate_series(
-                    (SELECT MIN(date)::date FROM {table_name} WHERE symbol = %s),
-                    (SELECT MAX(date)::date FROM {table_name} WHERE symbol = %s),
-                    '1 day'::interval
-                )::date AS expected_date
-            ),
-            existing_dates AS (
-                SELECT date::date AS existing_date 
-                FROM {table_name}
-                WHERE symbol = %s
-            ),
-            missing_dates AS (
-                SELECT ds.expected_date
-                FROM date_series ds
-                LEFT JOIN existing_dates ed ON ds.expected_date = ed.existing_date
-                WHERE ed.existing_date IS NULL
-            )
-            SELECT expected_date FROM missing_dates ORDER BY expected_date;
-        """, (symbol, symbol, symbol))
+        # Determine the end date for filling
+        if extend_to_today:
+            # For daily updates: fill up to today (includes weekends)
+            # Get the date range and find gaps
+            cursor.execute(f"""
+                WITH date_series AS (
+                    SELECT generate_series(
+                        (SELECT MIN(date)::date FROM {table_name} WHERE symbol = %s),
+                        CURRENT_DATE,
+                        '1 day'::interval
+                    )::date AS expected_date
+                ),
+                existing_dates AS (
+                    SELECT date::date AS existing_date 
+                    FROM {table_name}
+                    WHERE symbol = %s
+                ),
+                missing_dates AS (
+                    SELECT ds.expected_date
+                    FROM date_series ds
+                    LEFT JOIN existing_dates ed ON ds.expected_date = ed.existing_date
+                    WHERE ed.existing_date IS NULL
+                )
+                SELECT expected_date FROM missing_dates ORDER BY expected_date;
+            """, (symbol, symbol))
+        else:
+            # For initial fill: only fill between existing data points
+            cursor.execute(f"""
+                WITH date_series AS (
+                    SELECT generate_series(
+                        (SELECT MIN(date)::date FROM {table_name} WHERE symbol = %s),
+                        (SELECT MAX(date)::date FROM {table_name} WHERE symbol = %s),
+                        '1 day'::interval
+                    )::date AS expected_date
+                ),
+                existing_dates AS (
+                    SELECT date::date AS existing_date 
+                    FROM {table_name}
+                    WHERE symbol = %s
+                ),
+                missing_dates AS (
+                    SELECT ds.expected_date
+                    FROM date_series ds
+                    LEFT JOIN existing_dates ed ON ds.expected_date = ed.existing_date
+                    WHERE ed.existing_date IS NULL
+                )
+                SELECT expected_date FROM missing_dates ORDER BY expected_date;
+            """, (symbol, symbol, symbol))
         
         missing_dates = cursor.fetchall()
         
@@ -321,14 +376,15 @@ def insert_batch_to_db(batch_data, conn, table_name='crypto_prices'):
     finally:
         cursor.close()
 
-def process_and_insert_data(data, symbol, table_name='crypto_prices'):
+def process_and_insert_data(data, symbol, table_name='crypto_prices', extend_to_today=False):
     """
     Process fetched data and insert into database in batches, then fill missing dates
     
     Args:
         data: List of price records
         symbol: Asset symbol
-        table_name: Table to insert into (crypto_prices or commodity_prices)
+        table_name: Table to insert into (crypto_prices, commodity_prices, index_prices, stock_prices)
+        extend_to_today: If True, forward-fill extends to today (for daily updates)
     """
     if not data:
         return
@@ -346,7 +402,7 @@ def process_and_insert_data(data, symbol, table_name='crypto_prices'):
                 print(f"  → Processed {i + len(batch)}/{len(data)} records...")
         
         # After inserting all data, fill missing dates with forward-fill
-        filled = fill_missing_dates(symbol, conn, table_name)
+        filled = fill_missing_dates(symbol, conn, table_name, extend_to_today)
         update_stats('inserted', filled)
     
     finally:
@@ -358,7 +414,8 @@ def fetch_and_store_symbol(symbol, daily_update=False, asset_type='crypto'):
     
     Args:
         symbol: Asset symbol to fetch
-        daily_update: If True, fetch last 10 days. If False, fetch from 2009
+        daily_update: If True, fetch last 10 days and extend forward-fill to today.
+                     If False, fetch from 2009 and only fill gaps between data.
         asset_type: 'crypto', 'commodity', 'index', or 'stock' to determine which table to use
     """
     print(f"\n--- Processing {symbol} ({asset_type}) ---")
@@ -376,7 +433,8 @@ def fetch_and_store_symbol(symbol, daily_update=False, asset_type='crypto'):
     data = fetch_historical_price_data(symbol, daily_update)
     
     if data:
-        process_and_insert_data(data, symbol, table_name)
+        # Pass daily_update flag to extend forward-fill to today for daily updates
+        process_and_insert_data(data, symbol, table_name, extend_to_today=daily_update)
         return True
     return False
 
