@@ -3,7 +3,7 @@
 # Daily Asset Price Update Script
 # Runs at 2 AM US Eastern Time
 # Updates last 10 days of price data for all configured symbols
-# Updates asset metadata
+# Updates asset metadata (crypto, commodities, indices, stocks) and exchanges data
 
 SCRIPT_DIR="/home/$(whoami)/projects/mystoreofvalue.com"
 LOG_DIR="$SCRIPT_DIR/logs"
@@ -22,12 +22,22 @@ echo "========================================" >> "$LOG_FILE"
 # Change to script directory
 cd "$SCRIPT_DIR"
 
-# Step 1: Update asset metadata
+# Step 1: Update exchanges data
 echo "" >> "$LOG_FILE"
-echo "--- Updating Asset Metadata ---" >> "$LOG_FILE"
+echo "--- Updating Exchanges Data ---" >> "$LOG_FILE"
+python3 populate_exchanges.py >> "$LOG_FILE" 2>&1
+
+# Step 2: Update asset metadata (crypto, commodities, indices)
+echo "" >> "$LOG_FILE"
+echo "--- Updating Asset Metadata (Crypto, Commodities, Indices) ---" >> "$LOG_FILE"
 python3 populate_asset_metadata.py >> "$LOG_FILE" 2>&1
 
-# Step 2: Run the Python script in daily update mode
+# Step 3: Update stocks metadata
+echo "" >> "$LOG_FILE"
+echo "--- Updating Stocks Metadata ---" >> "$LOG_FILE"
+python3 populate_stocks_metadata.py >> "$LOG_FILE" 2>&1
+
+# Step 4: Run the Python script in daily update mode
 echo "" >> "$LOG_FILE"
 echo "--- Updating Price Data (Last 10 Days) ---" >> "$LOG_FILE"
 python3 fetch_asset_light.py --daily >> "$LOG_FILE" 2>&1

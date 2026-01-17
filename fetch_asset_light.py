@@ -25,8 +25,9 @@ DB_CONFIG = {
 }
 
 # Performance configuration for N2-standard-8
-MAX_WORKERS = 6  # Use 6 threads for API calls (75% of 8 cores)
-BATCH_SIZE = 1000  # Insert records in batches for efficiency
+# Optimized for high-volume stock data ingestion (66k+ stocks)
+MAX_WORKERS = 7  # Use 7 threads for API calls (87.5% of 8 cores, leave 1 for system)
+BATCH_SIZE = 5000  # Larger batches for stock data (more efficient for large volumes)
 API_RETRY_DELAY = 2  # Seconds to wait on rate limit
 MAX_RETRIES = 3
 
@@ -100,6 +101,31 @@ def fetch_indices_list():
     except requests.exceptions.RequestException as e:
         print(f"✗ Error fetching indices list: {e}")
         return []
+
+def fetch_stock_symbols_from_db():
+    """
+    Fetch list of actively trading stock symbols from the database
+    Returns list of stock symbols
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute("""
+            SELECT symbol
+            FROM asset_metadata
+            WHERE asset_type = 'stock'
+            AND is_actively_trading = true
+            ORDER BY symbol
+        """)
+        
+        symbols = [row[0] for row in cursor.fetchall()]
+        print(f"✓ Found {len(symbols):,} actively trading stocks in database")
+        return symbols
+        
+    finally:
+        cursor.close()
+        conn.close()
 
 def get_db_connection():
     """Create a new database connection"""
@@ -333,7 +359,7 @@ def fetch_and_store_symbol(symbol, daily_update=False, asset_type='crypto'):
     Args:
         symbol: Asset symbol to fetch
         daily_update: If True, fetch last 10 days. If False, fetch from 2009
-        asset_type: 'crypto', 'commodity', or 'index' to determine which table to use
+        asset_type: 'crypto', 'commodity', 'index', or 'stock' to determine which table to use
     """
     print(f"\n--- Processing {symbol} ({asset_type}) ---")
     
@@ -342,6 +368,8 @@ def fetch_and_store_symbol(symbol, daily_update=False, asset_type='crypto'):
         table_name = 'commodity_prices'
     elif asset_type == 'index':
         table_name = 'index_prices'
+    elif asset_type == 'stock':
+        table_name = 'stock_prices'
     else:
         table_name = 'crypto_prices'
     
@@ -399,11 +427,20 @@ def main():
     if not index_symbols:
         print("⚠ No indices found, will skip indices")
     
+    # Fetch actively trading stocks from database
+    print("\n--- Fetching actively trading stocks ---")
+    stock_symbols = fetch_stock_symbols_from_db()
+    
+    if not stock_symbols:
+        print("⚠ No stocks found in database, will skip stocks")
+        print("💡 Run populate_stocks_metadata.py first to populate stock symbols")
+    
     # Combine all symbols with their asset types
     all_assets = (
         [(symbol, 'crypto') for symbol in crypto_symbols] +
         [(symbol, 'commodity') for symbol in commodity_symbols] +
-        [(symbol, 'index') for symbol in index_symbols]
+        [(symbol, 'index') for symbol in index_symbols] +
+        [(symbol, 'stock') for symbol in stock_symbols]
     )
     
     total_symbols = len(all_assets)
@@ -411,7 +448,10 @@ def main():
     start_time = time.time()
     
     # Use ThreadPoolExecutor for parallel API calls
-    workers_text = f"{total_symbols} asset(s) ({len(crypto_symbols)} crypto + {len(commodity_symbols)} commodities + {len(index_symbols)} indices) with {MAX_WORKERS} workers"
+    workers_text = (f"{total_symbols:,} asset(s) "
+                   f"({len(crypto_symbols)} crypto + {len(commodity_symbols)} commodities + "
+                   f"{len(index_symbols)} indices + {len(stock_symbols):,} stocks) "
+                   f"with {MAX_WORKERS} workers")
     print(f"\n🚀 Starting parallel data fetch for {workers_text}...\n")
     
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
