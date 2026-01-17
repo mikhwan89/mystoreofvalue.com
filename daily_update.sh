@@ -37,15 +37,20 @@ echo "" >> "$LOG_FILE"
 echo "--- Updating Asset Metadata (Crypto, Commodities, Indices) ---" >> "$LOG_FILE"
 python3 populate_asset_metadata.py >> "$LOG_FILE" 2>&1
 
-# Step 4: Update stocks metadata
+# Step 4: Update forex data
 echo "" >> "$LOG_FILE"
-echo "--- Updating Stocks Metadata ---" >> "$LOG_FILE"
-python3 populate_stocks_metadata.py >> "$LOG_FILE" 2>&1
+echo "--- Updating Forex Data (Last 10 Days) ---" >> "$LOG_FILE"
+python3 populate_forex_data.py --daily >> "$LOG_FILE" 2>&1
 
-# Step 5: Run the Python script in daily update mode
+# Step 5: Run the Python script in daily update mode for price data
 echo "" >> "$LOG_FILE"
-echo "--- Updating Price Data (Last 10 Days) ---" >> "$LOG_FILE"
+echo "--- Updating Asset Price Data (Last 10 Days) ---" >> "$LOG_FILE"
 python3 fetch_asset_light.py --daily >> "$LOG_FILE" 2>&1
+
+# Step 6: Normalize prices to USD
+echo "" >> "$LOG_FILE"
+echo "--- Normalizing Prices to USD (Last 10 Days) ---" >> "$LOG_FILE"
+python3 normalize_prices_to_usd.py --daily >> "$LOG_FILE" 2>&1
 
 # Log completion
 echo "========================================" >> "$LOG_FILE"

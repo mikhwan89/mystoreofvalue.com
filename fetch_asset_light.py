@@ -102,31 +102,6 @@ def fetch_indices_list():
         print(f"✗ Error fetching indices list: {e}")
         return []
 
-def fetch_stock_symbols_from_db():
-    """
-    Fetch list of actively trading stock symbols from the database
-    Returns list of stock symbols
-    """
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    
-    try:
-        cursor.execute("""
-            SELECT symbol
-            FROM asset_metadata
-            WHERE asset_type = 'stock'
-            AND is_actively_trading = true
-            ORDER BY symbol
-        """)
-        
-        symbols = [row[0] for row in cursor.fetchall()]
-        print(f"✓ Found {len(symbols):,} actively trading stocks in database")
-        return symbols
-        
-    finally:
-        cursor.close()
-        conn.close()
-
 def get_db_connection():
     """Create a new database connection"""
     return psycopg2.connect(**DB_CONFIG)
@@ -416,7 +391,7 @@ def fetch_and_store_symbol(symbol, daily_update=False, asset_type='crypto'):
         symbol: Asset symbol to fetch
         daily_update: If True, fetch last 10 days and extend forward-fill to today.
                      If False, fetch from 2009 and only fill gaps between data.
-        asset_type: 'crypto', 'commodity', 'index', or 'stock' to determine which table to use
+        asset_type: 'crypto', 'commodity', or 'index' to determine which table to use
     """
     print(f"\n--- Processing {symbol} ({asset_type}) ---")
     
@@ -425,8 +400,6 @@ def fetch_and_store_symbol(symbol, daily_update=False, asset_type='crypto'):
         table_name = 'commodity_prices'
     elif asset_type == 'index':
         table_name = 'index_prices'
-    elif asset_type == 'stock':
-        table_name = 'stock_prices'
     else:
         table_name = 'crypto_prices'
     
@@ -485,20 +458,11 @@ def main():
     if not index_symbols:
         print("⚠ No indices found, will skip indices")
     
-    # Fetch actively trading stocks from database
-    print("\n--- Fetching actively trading stocks ---")
-    stock_symbols = fetch_stock_symbols_from_db()
-    
-    if not stock_symbols:
-        print("⚠ No stocks found in database, will skip stocks")
-        print("💡 Run populate_stocks_metadata.py first to populate stock symbols")
-    
-    # Combine all symbols with their asset types
+    # Combine all symbols with their asset types (stocks removed)
     all_assets = (
         [(symbol, 'crypto') for symbol in crypto_symbols] +
         [(symbol, 'commodity') for symbol in commodity_symbols] +
-        [(symbol, 'index') for symbol in index_symbols] +
-        [(symbol, 'stock') for symbol in stock_symbols]
+        [(symbol, 'index') for symbol in index_symbols]
     )
     
     total_symbols = len(all_assets)
@@ -508,7 +472,7 @@ def main():
     # Use ThreadPoolExecutor for parallel API calls
     workers_text = (f"{total_symbols:,} asset(s) "
                    f"({len(crypto_symbols)} crypto + {len(commodity_symbols)} commodities + "
-                   f"{len(index_symbols)} indices + {len(stock_symbols):,} stocks) "
+                   f"{len(index_symbols)} indices) "
                    f"with {MAX_WORKERS} workers")
     print(f"\n🚀 Starting parallel data fetch for {workers_text}...\n")
     
