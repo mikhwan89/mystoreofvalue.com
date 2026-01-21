@@ -147,19 +147,28 @@ def calculate_max_drawdown(prices):
     return abs(max_dd * 100), max_dd_idx
 
 def calculate_volatility(returns, annualize=True):
-    """Calculate volatility (standard deviation of returns)"""
+    """
+    Calculate volatility (standard deviation of returns)
+    
+    Note: Uses 365 days/year since all assets have forward-filled data
+    (weekends and holidays included) for fair comparison
+    """
     if len(returns) < 2:
         return 0.0
     
     vol = np.std(returns, ddof=1)
     
     if annualize:
-        vol = vol * np.sqrt(252)  # Annualize assuming 252 trading days
+        vol = vol * np.sqrt(365)  # Annualize using 365 days (all dates forward-filled)
     
     return vol * 100  # Convert to percentage
 
 def calculate_downside_deviation(returns, annualize=True):
-    """Calculate downside deviation (volatility of negative returns only)"""
+    """
+    Calculate downside deviation (volatility of negative returns only)
+    
+    Note: Uses 365 days/year since all assets have forward-filled data
+    """
     if len(returns) < 2:
         return 0.0
     
@@ -171,7 +180,7 @@ def calculate_downside_deviation(returns, annualize=True):
     downside_dev = np.std(negative_returns, ddof=1)
     
     if annualize:
-        downside_dev = downside_dev * np.sqrt(252)
+        downside_dev = downside_dev * np.sqrt(365)  # Annualize using 365 days
     
     return downside_dev
 
@@ -200,31 +209,45 @@ def calculate_performance_metrics(symbol, asset_type, table_name, start_date, en
     """
     Calculate all performance metrics for a given holding period
     Returns dictionary with all metrics, or None if insufficient data
+    
+    This function ensures:
+    1. Asset has data on the EXACT start date
+    2. Asset has data on the EXACT end date
+    3. Asset has been trading for the FULL holding period (e.g., 3 years for 3-year analysis)
     """
     # Fetch price data
     price_data = get_price_data(symbol, table_name, start_date, end_date)
     
-    if len(price_data) < 30:  # Need at least 30 days of data
-        return None
+    # Minimum data requirement: at least 70% of expected days
+    # For 3 years = 1095 days, we need at least 767 days
+    expected_days = holding_years * 365
+    min_required_days = int(expected_days * 0.7)
+    
+    if len(price_data) < min_required_days:
+        return None  # Insufficient data for this holding period
     
     dates = [d[0] for d in price_data]
     prices = np.array([float(d[1]) for d in price_data])
     
-    # Critical check: Ensure we have data on EXACT start and end dates
-    # Since we forward-fill all dates (including weekends), data should exist for every day
-    first_date = dates[0]
-    last_date = dates[-1]
-    
-    # Convert to datetime for comparison
+    # CRITICAL CHECK 1: Ensure we have data on EXACT start date
+    # Convert datetime to date for comparison (database stores datetime, we compare dates)
+    first_date = dates[0].date() if hasattr(dates[0], 'date') else dates[0]
     start_dt = datetime.strptime(str(start_date), '%Y-%m-%d').date()
+    
+    if first_date != start_dt:
+        return None  # No data on start date - asset didn't exist yet or was delisted
+    
+    # CRITICAL CHECK 2: Ensure we have data on EXACT end date
+    last_date = dates[-1].date() if hasattr(dates[-1], 'date') else dates[-1]
     end_dt = datetime.strptime(str(end_date), '%Y-%m-%d').date()
     
-    # Require exact match (or very close due to forward-fill)
-    if first_date != start_dt:
-        return None  # No data on start date
-    
     if last_date != end_dt:
-        return None  # No data on end date
+        return None  # No data on end date - asset was delisted or stopped trading
+    
+    # CRITICAL CHECK 3: Ensure the date range matches the expected holding period
+    actual_days = (last_date - first_date).days
+    if actual_days < expected_days - 10:  # Allow 10 days tolerance for leap years
+        return None  # Data doesn't cover the full holding period
     
     # Basic metrics
     start_price = prices[0]
