@@ -1,0 +1,2294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Store of Value - Find Your Wealth Preservation Strategy</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <style>
+        :root {
+            --gold: #D4AF37;
+            --dark-gold: #B8941F;
+            --cream: #FFF8E7;
+            --charcoal: #1A1A1A;
+            --slate: #2D2D2D;
+            --red: #D32F2F;
+            --green: #2E7D32;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Georgia, 'Times New Roman', serif;
+            background: var(--charcoal);
+            color: var(--cream);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+        
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(26, 26, 26, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+        }
+        
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--gold);
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2.5rem;
+            list-style: none;
+        }
+        
+        .nav-links a {
+            color: var(--cream);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            cursor: pointer;
+        }
+        
+        .nav-links a:hover, .nav-links a.active {
+            color: var(--gold);
+        }
+        
+        .hamburger {
+            display: none;
+            flex-direction: column;
+            gap: 5px;
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        .hamburger span {
+            width: 25px;
+            height: 3px;
+            background: var(--gold);
+            transition: 0.3s;
+        }
+        
+        @media (max-width: 768px) {
+            .logo {
+                font-size: 1rem;
+            }
+            
+            .hamburger {
+                display: flex;
+            }
+            
+            .nav-links {
+                position: fixed;
+                top: 70px;
+                right: -100%;
+                width: 70%;
+                max-width: 300px;
+                background: var(--slate);
+                flex-direction: column;
+                padding: 2rem;
+                gap: 1.5rem;
+                transition: right 0.3s;
+                border-left: 2px solid var(--gold);
+                height: calc(100vh - 70px);
+            }
+            
+            .nav-links.active {
+                right: 0;
+            }
+            
+            .nav-links a {
+                font-size: 1.2rem;
+            }
+        }
+        
+        /* Hero */
+        .hero {
+            min-height: 100vh;
+            padding: 8rem 2rem 4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .hero-title {
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 2rem;
+            background: linear-gradient(135deg, var(--gold) 0%, var(--cream) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .hero-subtitle {
+            font-size: clamp(1.3rem, 3vw, 1.8rem);
+            color: rgba(255, 248, 231, 0.8);
+            max-width: 800px;
+        }
+        
+        /* Quote Section */
+        .quote-section {
+            padding: 6rem 2rem;
+            background: var(--slate);
+            border-top: 2px solid var(--gold);
+            border-bottom: 2px solid var(--gold);
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        
+        .quote {
+            font-size: clamp(1.5rem, 3vw, 2.2rem);
+            font-style: italic;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+            position: relative;
+            padding-left: 3rem;
+        }
+        
+        .quote::before {
+            content: '"';
+            position: absolute;
+            left: 0;
+            top: -0.5rem;
+            font-size: 6rem;
+            color: var(--gold);
+            opacity: 0.3;
+        }
+        
+        .quote-author {
+            font-size: 1.2rem;
+            color: var(--gold);
+            font-weight: 600;
+        }
+        
+        .quote-context {
+            margin-top: 3rem;
+            font-size: 1.2rem;
+            line-height: 1.8;
+        }
+        
+        /* Sections */
+        .section {
+            padding: 6rem 2rem;
+        }
+        
+        .section-title {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            font-weight: 700;
+            color: var(--gold);
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .section-subtitle {
+            font-size: 1.3rem;
+            color: rgba(255, 248, 231, 0.8);
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 4rem;
+        }
+        
+        /* Currency Cards */
+        .currency-scroll {
+            display: flex;
+            gap: 2rem;
+            overflow-x: auto;
+            padding: 2rem 0;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .currency-scroll::-webkit-scrollbar {
+            height: 8px;
+        }
+        
+        .currency-scroll::-webkit-scrollbar-track {
+            background: var(--charcoal);
+        }
+        
+        .currency-scroll::-webkit-scrollbar-thumb {
+            background: var(--gold);
+            border-radius: 4px;
+        }
+        
+        .currency-card {
+            background: var(--charcoal);
+            border: 2px solid;
+            border-radius: 8px;
+            padding: 2rem;
+            min-width: 280px;
+            flex-shrink: 0;
+            transition: transform 0.3s;
+        }
+        
+        .currency-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .currency-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--gold);
+            margin-bottom: 0.5rem;
+        }
+        
+        .currency-pair {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: rgba(255, 248, 231, 0.6);
+            margin-bottom: 1rem;
+        }
+        
+        .depreciation-value {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .search-box {
+            max-width: 600px;
+            margin: 3rem auto 2rem;
+        }
+        
+        .search-box input {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            border: 2px solid rgba(212, 175, 55, 0.3);
+            background: var(--charcoal);
+            color: var(--cream);
+        }
+        
+        /* CTA */
+        .cta-button {
+            display: inline-block;
+            padding: 1.5rem 4rem;
+            background: var(--gold);
+            color: var(--charcoal);
+            font-size: 1.3rem;
+            font-weight: 700;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: all 0.3s;
+            cursor: pointer;
+            border: none;
+        }
+        
+        .cta-button:hover {
+            background: var(--dark-gold);
+            transform: translateY(-2px);
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .image-container {
+            max-width: 1200px;
+            margin: 0 auto 2rem;
+            border: 2px solid var(--gold);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .image-container img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+        
+        .hidden {
+            display: none;
+        }
+
+        .stats-table .positive {
+            color: #4CAF50;
+        }
+
+        .stats-table .negative {
+            color: #FF6B6B;
+        }
+
+        .stats-table .very-negative {
+            color: #D32F2F;
+        }
+
+        .stats-table .slightly-negative {
+            color: #FFA07A;
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="nav-container">
+            <div class="logo">MyStoreOfValue.com</div>
+            <div class="hamburger" onclick="toggleMenu()">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <ul class="nav-links" id="nav-menu">
+                <li><a href="#home" onclick="showPage('home'); return false;" class="active" id="nav-home">Home</a></li>
+                <li><a href="#leaderboard" onclick="showPage('leaderboard'); return false;" id="nav-leaderboard">Leaderboard</a></li>
+                <li><a href="#asset" onclick="showPage('asset'); return false;" id="nav-asset">Asset Details</a></li>
+            </ul>
+        </div>
+    </nav>
+
+
+    <!-- Home Page -->
+    <div id="page-home">
+        <section class="hero">
+            <div>
+                <h1 class="hero-title">
+                    Stop Working Twice<br/>
+                    For Your Money.
+                </h1>
+                <p class="hero-subtitle">
+                    Discover which assets have actually preserved wealth over time—backed by data, not speculation.
+                </p>
+            </div>
+        </section>
+
+        <section class="quote-section">
+            <div class="container">
+                <blockquote class="quote">
+                    You effectively need to earn your money twice with fiat, 
+                    once when you work for it, and once when you invest it to beat inflation. 
+                    The simple gold coin saved you from all of this before fiat.
+                </blockquote>
+                <p class="quote-author">— Saifedean Ammous</p>
+                <div class="quote-context">
+                    <p>
+                        This insight inspired MyStoreOfValue.com. The goal: help you find the right 
+                        long-term store of value using comprehensive historical data and objective analysis.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">The Silent Wealth Tax</h2>
+            <p class="section-subtitle">
+                Over the past century, the U.S. dollar has lost 96% of its purchasing power. 
+                A dollar from 1913 now buys what three cents would have bought then.
+            </p>
+            <div class="image-container">
+                <img src="dollar-purchasing-power.jpg" alt="USD Purchasing Power" 
+                     onerror="this.src='https://via.placeholder.com/1200x600/2D2D2D/D4AF37?text=Upload+dollar-purchasing-power.jpg'">
+            </div>
+            <p class="text-center" style="font-size: 0.9rem; color: rgba(255, 248, 231, 0.5);">
+                Image source: <a href="https://www.visualcapitalist.com" target="_blank" style="color: var(--gold)">Visual Capitalist</a>
+            </p>
+        </section>
+
+        <section class="section" style="background: var(--slate);">
+            <div class="container">
+                <h2 class="section-title">The Compounding Crisis</h2>
+                <p class="section-subtitle">
+                    For people in many other countries, the situation is even worse. 
+                    Their local currencies lose value against the U.S. dollar — 
+                    which itself is losing purchasing power.
+                </p>
+                
+                <div class="search-box">
+                    <input type="text" id="currency-search" placeholder="Search your country or currency..." 
+                           onkeyup="filterCurrencies()">
+                </div>
+                
+                <div class="currency-scroll" id="currency-container"></div>
+                
+                <p class="text-center" style="margin-top: 1rem; color: rgba(255, 248, 231, 0.5);">
+                    ← Scroll to see more currencies →
+                </p>
+            </div>
+        </section>
+
+        <section class="section text-center">
+            <h2 style="font-size: 3rem; color: var(--gold); margin-bottom: 2rem;">There's a Better Way</h2>
+            <p style="font-size: 1.3rem; max-width: 800px; margin: 0 auto 3rem; line-height: 1.8;">
+                See which assets have actually preserved and grown wealth across different 
+                time periods and strategies. Real data. Real results.
+            </p>
+            <button class="cta-button" onclick="showPage('leaderboard')">
+                View the Leaderboard →
+            </button>
+        </section>
+    </div>
+
+    <!-- Leaderboard Page -->
+    <div id="page-leaderboard" class="hidden" style="padding-top: 8rem; min-height: 100vh;">
+        <div class="container" style="max-width: 1400px;">
+            <h1 class="section-title">Asset Performance Leaderboard</h1>
+            <p class="section-subtitle" style="margin-bottom: 3rem;">
+                Historical performance ranked by consistency across rolling time periods
+            </p>
+            
+            <!-- Filters -->
+            <div style="background: var(--slate); padding: 2rem; border-radius: 12px; margin-bottom: 3rem;">
+                <!-- Basic Filters (Always Visible) -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;">
+                    <div>
+                        <label style="display: block; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">Strategy</label>
+                        <select id="strategy-select" onchange="loadLeaderboard()" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                            <option value="lumpsum" selected>Lump Sum</option>
+                            <option value="dca_daily">DCA Daily</option>
+                            <option value="dca_weekly">DCA Weekly</option>
+                            <option value="dca_monthly">DCA Monthly</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label style="display: block; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">Holding Period</label>
+                        <select id="period-select" onchange="updateStartDateFilter(); loadLeaderboard();" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                            <option value="3">3 Years</option>
+                            <option value="4">4 Years</option>
+                            <option value="5" selected>5 Years</option>
+                            <option value="6">6 Years</option>
+                            <option value="7">7 Years</option>
+                            <option value="8">8 Years</option>
+                            <option value="9">9 Years</option>
+                            <option value="10">10 Years</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label style="display: block; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">Start Date From</label>
+                        <select id="startdate-select" onchange="loadLeaderboard()" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                            <option value="all" selected>All Periods (2010+)</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label style="display: block; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">Asset Type</label>
+                        <select id="assettype-select" onchange="loadLeaderboard()" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                            <option value="all">All Assets</option>
+                            <option value="crypto">Crypto</option>
+                            <option value="commodity">Commodities</option>
+                            <option value="index">Indices</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Show More Filters Button -->
+                <div style="text-align: center; margin-top: 1.5rem;">
+                    <button id="toggle-filters-btn" onclick="toggleAdvancedFilters()" style="padding: 0.75rem 2rem; background: transparent; color: var(--gold); border: 2px solid var(--gold); border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s;">
+                        ▼ Show Advanced Filters
+                    </button>
+                </div>
+                
+                <!-- Advanced Filters (Hidden by Default) -->
+                <div id="advanced-filters" style="display: none; margin-top: 2rem; padding-top: 2rem; border-top: 1px solid rgba(212, 175, 55, 0.2);">
+                    <h4 style="color: var(--gold); margin-bottom: 1.5rem; text-align: center; font-size: 1.1rem;">
+                        Risk & Reward Filters
+                    </h4>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+                        <!-- Minimum CAGR -->
+                        <div>
+                            <label style="display: block; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">
+                                Min CAGR (%)
+                            </label>
+                            <div style="font-size: 0.85rem; color: rgba(255, 248, 231, 0.6); margin-bottom: 0.5rem;">
+                                Minimum annualized return
+                            </div>
+                            <input type="number" id="min-cagr" placeholder="No minimum" step="0.1" onchange="loadLeaderboard()" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                        </div>
+                        
+                        <!-- Max Drawdown -->
+                        <div>
+                            <label style="display: block; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">
+                                Max Drawdown (%)
+                            </label>
+                            <div style="font-size: 0.85rem; color: rgba(255, 248, 231, 0.6); margin-bottom: 0.5rem;">
+                                Enter as positive (e.g., 30 for 30% max)
+                            </div>
+                            <input type="number" id="max-drawdown" placeholder="e.g., 30" step="0.1" onchange="loadLeaderboard()" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                        </div>
+                        
+                        <!-- Max Loss From Cost/Entry -->
+                        <div>
+                            <label style="display: block; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">
+                                Max Loss From <span id="loss-label">Entry</span> (%)
+                            </label>
+                            <div style="font-size: 0.85rem; color: rgba(255, 248, 231, 0.6); margin-bottom: 0.5rem;">
+                                Enter as positive (e.g., 25 for 25% max loss)
+                            </div>
+                            <input type="number" id="max-loss" placeholder="e.g., 25" step="0.1" onchange="loadLeaderboard()" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                        </div>
+                        
+                        <!-- Min Sharpe Ratio -->
+                        <div>
+                            <label style="display: block; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">
+                                Min Sharpe Ratio
+                            </label>
+                            <div style="font-size: 0.85rem; color: rgba(255, 248, 231, 0.6); margin-bottom: 0.5rem;">
+                                Risk-adjusted return
+                            </div>
+                            <input type="number" id="min-sharpe" placeholder="No minimum" step="0.01" onchange="loadLeaderboard()" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                        </div>
+                        
+                        <!-- Min Sortino Ratio -->
+                        <div>
+                            <label style="display: block; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">
+                                Min Sortino Ratio
+                            </label>
+                            <div style="font-size: 0.85rem; color: rgba(255, 248, 231, 0.6); margin-bottom: 0.5rem;">
+                                Downside risk-adjusted return
+                            </div>
+                            <input type="number" id="min-sortino" placeholder="No minimum" step="0.01" onchange="loadLeaderboard()" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                        </div>
+                        
+                        <!-- Min Calmar Ratio -->
+                        <div>
+                            <label style="display: block; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">
+                                Min Calmar Ratio
+                            </label>
+                            <div style="font-size: 0.85rem; color: rgba(255, 248, 231, 0.6); margin-bottom: 0.5rem;">
+                                Return vs max drawdown
+                            </div>
+                            <input type="number" id="min-calmar" placeholder="No minimum" step="0.01" onchange="loadLeaderboard()" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                        </div>
+                    </div>
+                    
+                    <!-- Clear Filters Button -->
+                    <div style="text-align: center; margin-top: 1.5rem;">
+                        <button onclick="clearAdvancedFilters()" style="padding: 0.75rem 2rem; background: transparent; color: rgba(255, 248, 231, 0.7); border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 6px; cursor: pointer; font-weight: 600;">
+                            Clear Advanced Filters
+                        </button>
+                    </div>
+                </div>
+
+                <!-- End Advanced Filter -->
+            </div>
+
+            <script>
+            // Toggle advanced filters visibility
+            function toggleAdvancedFilters() {
+                const filtersDiv = document.getElementById('advanced-filters');
+                const btn = document.getElementById('toggle-filters-btn');
+                
+                if (filtersDiv.style.display === 'none') {
+                    filtersDiv.style.display = 'block';
+                    btn.innerHTML = '▲ Hide Advanced Filters';
+                    btn.style.background = 'rgba(212, 175, 55, 0.1)';
+                } else {
+                    filtersDiv.style.display = 'none';
+                    btn.innerHTML = '▼ Show Advanced Filters';
+                    btn.style.background = 'transparent';
+                }
+            }
+
+            // Clear all advanced filters
+            function clearAdvancedFilters() {
+                document.getElementById('min-cagr').value = '';
+                document.getElementById('max-drawdown').value = '';
+                document.getElementById('max-loss').value = '';
+                document.getElementById('min-sharpe').value = '';
+                document.getElementById('min-sortino').value = '';
+                document.getElementById('min-calmar').value = '';
+                loadLeaderboard();
+            }
+
+            // Update loss label based on strategy
+            function updateLossLabel() {
+                const strategy = document.getElementById('strategy-select').value;
+                const label = document.getElementById('loss-label');
+                if (strategy === 'lumpsum') {
+                    label.textContent = 'Entry';
+                } else {
+                    label.textContent = 'Cost';
+                }
+            }
+
+            // Call updateLossLabel when strategy changes
+            document.getElementById('strategy-select').addEventListener('change', updateLossLabel);
+            </script>
+
+            <!-- END Filters -->
+
+            <!-- Loading -->
+            <div id="leaderboard-loading" style="text-align: center; padding: 4rem; color: var(--gold); font-size: 1.2rem;">
+                Loading performance data...
+            </div>
+
+            <!-- Results -->
+            <div id="leaderboard-results" style="display: none;">
+
+                <!-- Winners Podium -->
+                <div id="winners-section">
+                    <h2 style="font-size: 2.5rem; text-align: center; color: var(--gold); margin-bottom: 2rem;">
+                        Overall Champions
+                    </h2>
+                    <p style="text-align: center; color: rgba(255, 248, 231, 0.7); margin-bottom: 1rem; font-size: 1.1rem;">
+                        Ranked by total wins in 
+                        <select id="ranking-metric" onchange="loadLeaderboard()" style="background: var(--slate); color: var(--gold); border: 2px solid var(--gold); border-radius: 6px; padding: 0.25rem 0.5rem; font-size: 1.1rem; font-weight: 600; cursor: pointer; margin: 0 0.25rem;">
+                            <option value="cagr" selected>CAGR</option>
+                            <option value="sharpe">Sharpe Ratio</option>
+                            <option value="sortino">Sortino Ratio</option>
+                            <option value="calmar">Calmar Ratio</option>
+                        </select>
+                        across all rolling periods
+                    </p>
+                    <p style="text-align: center; color: rgba(255, 248, 231, 0.5); margin-bottom: 3rem; font-size: 0.9rem; font-style: italic;">
+                        <span id="metric-description">Higher annualized returns = better performance</span>
+                    </p>
+                    
+                    <!-- Podium Container -->
+                    <div class="podium-container" style="display: flex; justify-content: center; align-items: flex-end; gap: 2rem; margin-bottom: 4rem; flex-wrap: wrap;">
+                        <!-- Second Place -->
+                        <div class="podium-card podium-second" style="background: var(--slate); border: 3px solid #C0C0C0; border-radius: 12px; padding: 2rem 1.5rem 2.5rem; width: 240px; height: 350px; text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
+                            <div>
+                                <div style="font-size: 3rem; margin-bottom: 1rem;">🥈</div>
+                                <div id="second-name" style="font-size: 1.3rem; font-weight: 700; color: var(--gold); margin-bottom: 0.5rem; min-height: 3.5rem; display: flex; align-items: center; justify-content: center; overflow-wrap: break-word; hyphens: auto; line-height: 1.2;"></div>
+                                <div id="second-symbol" style="font-family: 'Courier New', monospace; color: rgba(255, 248, 231, 0.5); font-size: 0.85rem;"></div>
+                            </div>
+                            <div style="margin-top: auto;">
+                                <div id="second-score" style="font-size: 2.2rem; font-weight: 700; color: var(--gold); margin-bottom: 0.5rem;"></div>
+                                <div style="color: rgba(255, 248, 231, 0.6); font-size: 0.95rem;">points</div>
+                            </div>
+                        </div>
+                        
+                        <!-- First Place -->
+                        <div class="podium-card podium-first" style="background: var(--slate); border: 3px solid #FFD700; border-radius: 12px; padding: 2.5rem 1.5rem 2.5rem; width: 260px; height: 400px; text-align: center; transform: translateY(-20px); display: flex; flex-direction: column; justify-content: space-between;">
+                            <div>
+                                <div style="font-size: 4rem; margin-bottom: 1rem;">🥇</div>
+                                <div id="first-name" style="font-size: 1.5rem; font-weight: 700; color: var(--gold); margin-bottom: 0.5rem; min-height: 3.5rem; display: flex; align-items: center; justify-content: center; overflow-wrap: break-word; hyphens: auto; line-height: 1.2;"></div>
+                                <div id="first-symbol" style="font-family: 'Courier New', monospace; color: rgba(255, 248, 231, 0.5); font-size: 0.9rem;"></div>
+                            </div>
+                            <div style="margin-top: auto;">
+                                <div id="first-score" style="font-size: 2.8rem; font-weight: 700; color: var(--gold); margin-bottom: 0.5rem;"></div>
+                                <div style="color: rgba(255, 248, 231, 0.6); font-size: 1rem;">points</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Third Place -->
+                        <div class="podium-card podium-third" style="background: var(--slate); border: 3px solid #CD7F32; border-radius: 12px; padding: 2rem 1.5rem 2.5rem; width: 240px; height: 350px; text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
+                            <div>
+                                <div style="font-size: 3rem; margin-bottom: 1rem;">🥉</div>
+                                <div id="third-name" style="font-size: 1.3rem; font-weight: 700; color: var(--gold); margin-bottom: 0.5rem; min-height: 3.5rem; display: flex; align-items: center; justify-content: center; overflow-wrap: break-word; hyphens: auto; line-height: 1.2;"></div>
+                                <div id="third-symbol" style="font-family: 'Courier New', monospace; color: rgba(255, 248, 231, 0.5); font-size: 0.85rem;"></div>
+                            </div>
+                            <div style="margin-top: auto;">
+                                <div id="third-score" style="font-size: 2.2rem; font-weight: 700; color: var(--gold); margin-bottom: 0.5rem;"></div>
+                                <div style="color: rgba(255, 248, 231, 0.6); font-size: 0.95rem;">points</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                // Update metric description when dropdown changes
+                document.getElementById('ranking-metric').addEventListener('change', function() {
+                    const descriptions = {
+                        'cagr': 'Higher annualized returns = better performance',
+                        'sharpe': 'Higher risk-adjusted returns = better performance',
+                        'sortino': 'Higher downside risk-adjusted returns = better performance',
+                        'calmar': 'Higher return vs drawdown ratio = better performance'
+                    };
+                    document.getElementById('metric-description').textContent = descriptions[this.value];
+                });
+                </script>
+
+                <style>
+                /* Existing podium styles remain the same */
+                .podium-container {
+                    display: flex;
+                    justify-content: center;
+                    align-items: flex-end;
+                    max-width: 1200px;
+                    margin: 0 auto;
+                }
+
+                .podium-second {
+                    order: 1;
+                }
+
+                .podium-first {
+                    order: 2;
+                }
+
+                .podium-third {
+                    order: 3;
+                }
+
+                @media (max-width: 768px) {
+                    .podium-container {
+                        flex-direction: column;
+                        align-items: center;
+                        padding: 0 1rem;
+                    }
+                    
+                    .podium-first {
+                        order: 1;
+                        transform: none !important;
+                        height: auto !important;
+                        min-height: 320px;
+                    }
+                    
+                    .podium-second {
+                        order: 2;
+                        height: auto !important;
+                        min-height: 300px;
+                    }
+                    
+                    .podium-third {
+                        order: 3;
+                        height: auto !important;
+                        min-height: 300px;
+                    }
+                    
+                    .podium-card {
+                        width: 100% !important;
+                        max-width: 320px;
+                        margin: 0 auto;
+                    }
+                }
+                </style>
+
+                <!-- end winners podium -->
+
+                <!-- Winner Stats Overview -->
+                <div style="margin-top: 6rem; margin-bottom: 6rem;">
+                    <h2 style="font-size: 2.5rem; text-align: center; color: var(--gold); margin-bottom: 1rem;">
+                        Winner Stats Overview
+                    </h2>
+                    <p style="text-align: center; color: rgba(255, 248, 231, 0.7); margin-bottom: 3rem; font-size: 1.1rem;">
+                        Statistical distribution of top performers across all periods (ignoring advanced filters)
+                    </p>
+                    
+                    <div id="stats-overview-container">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+
+                <style>
+                .stats-table {
+                    overflow-x: auto;
+                    margin-bottom: 3rem;
+                }
+
+                .stats-table table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    background: var(--slate);
+                    border-radius: 8px;
+                    overflow: hidden;
+                }
+
+                .stats-table thead tr {
+                    background: rgba(212, 175, 55, 0.1);
+                    border-bottom: 2px solid var(--gold);
+                }
+
+                .stats-table th {
+                    padding: 1rem;
+                    text-align: left;
+                    color: var(--gold);
+                    font-weight: 700;
+                    font-size: 0.95rem;
+                }
+
+                .stats-table td {
+                    padding: 0.875rem 1rem;
+                    color: var(--cream);
+                    border-bottom: 1px solid rgba(212, 175, 55, 0.1);
+                }
+
+                .stats-table tbody tr:hover {
+                    background: rgba(212, 175, 55, 0.05);
+                }
+
+                .stats-table .metric-name {
+                    font-weight: 600;
+                    color: var(--gold);
+                }
+
+                .stats-table .positive {
+                    color: var(--green);
+                }
+
+                .stats-table .negative {
+                    color: #FF6B6B;
+                }
+
+                @media (max-width: 768px) {
+                    .stats-table {
+                        font-size: 0.85rem;
+                    }
+                    
+                    .stats-table th,
+                    .stats-table td {
+                        padding: 0.75rem 0.5rem;
+                    }
+                }
+                </style>
+
+
+                <!-- Winner Stats Overview End -->
+
+
+                <!-- Period-by-Period Winners -->
+                <div style="margin-top: 6rem;">
+                    <h2 style="font-size: 2.5rem; text-align: center; color: var(--gold); margin-bottom: 2rem;">
+                        Period-by-Period Winners
+                    </h2>
+                    <p style="text-align: center; color: rgba(255, 248, 231, 0.7); margin-bottom: 3rem; font-size: 1.1rem;">
+                        Top 3 performers for each rolling period
+                    </p>
+                    
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; background: var(--slate); border-radius: 8px; overflow: hidden;">
+                            <thead>
+                                <tr style="background: rgba(212, 175, 55, 0.1); border-bottom: 2px solid var(--gold);">
+                                    <th style="padding: 1.5rem; text-align: left; color: var(--gold); font-weight: 700;">Start Date</th>
+                                    <th style="padding: 1.5rem; text-align: left; color: var(--gold); font-weight: 700;">End Date</th>
+                                    <th style="padding: 1.5rem; text-align: left; color: var(--gold); font-weight: 700;">🥇 First</th>
+                                    <th style="padding: 1.5rem; text-align: left; color: var(--gold); font-weight: 700;">🥈 Second</th>
+                                    <th style="padding: 1.5rem; text-align: left; color: var(--gold); font-weight: 700;">🥉 Third</th>
+                                </tr>
+                            </thead>
+                            <tbody id="periods-table-body">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination Controls -->
+                    <div id="pagination-controls"></div>
+                </div>
+
+                <div style="margin-top: 4rem; text-align: center; color: rgba(255, 248, 231, 0.5); padding: 2rem; background: var(--slate); border-radius: 8px;">
+                    <p style="font-family: 'Courier New', monospace; margin-bottom: 0.5rem; font-weight: 600;">
+                        <strong>Scoring:</strong> 1st Place = 5 points | 2nd Place = 3 points | 3rd Place = 1 point
+                    </p>
+                    <p style="font-family: 'Courier New', monospace; margin-bottom: 0.5rem;">
+                        Strategy: <span id="footer-strategy"></span> | Period: <span id="footer-period"></span> years
+                    </p>
+                    <p style="font-family: 'Courier New', monospace; font-size: 0.9rem; margin-top: 1.5rem; color: rgba(255, 248, 231, 0.4); line-height: 1.6;">
+                        <strong>Methodology:</strong> Performance simulated using monthly start dates (1st of each month from 2010 onwards).<br/>
+                        Rankings reflect consistency across all eligible periods, not specific entry/exit timing.<br/>
+                        <span style="margin-top: 0.5rem; display: inline-block;" id="footer-assets"></span>
+                    </p>
+                </div>
+
+
+                <!-- period-by-period end -->
+                dri
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // Update start date filter based on holding period
+    function updateStartDateFilter() {
+        const period = parseInt(document.getElementById('period-select').value);
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth() + 1;
+        
+        // Calculate earliest valid start date (holding period years ago)
+        const earliestYear = currentYear - period;
+        
+        const select = document.getElementById('startdate-select');
+        select.innerHTML = '<option value="all" selected>All Periods (2010+)</option>';
+        
+        // Generate year options from 2010 to (currentYear - period)
+        for (let year = 2010; year <= earliestYear; year++) {
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = `From ${year} onwards`;
+            select.appendChild(option);
+        }
+    }
+
+    // Initialize start date filter on page load
+    updateStartDateFilter();
+    </script>
+
+
+    <!-- Asset Details Page -->
+    <!-- Asset Details Page -->
+    <div id="page-asset" class="hidden" style="padding-top: 8rem; min-height: 100vh;">
+        <div class="container" style="max-width: 1600px;">
+            <h1 class="section-title">Asset Performance Details</h1>
+            <p class="section-subtitle" style="margin-bottom: 3rem;">
+                Compare up to 3 assets across multiple performance metrics over time
+            </p>
+            
+            <!-- Filters -->
+            <div style="background: var(--slate); padding: 2rem; border-radius: 12px; margin-bottom: 3rem;">
+                <!-- Basic Filters -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+                    <!-- Strategy -->
+                    <div>
+                        <label style="display: block; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">Strategy</label>
+                        <select id="asset-strategy-select" onchange="updateAssetLossLabel(); loadDefaultAssets();" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                            <option value="lumpsum" selected>Lump Sum</option>
+                            <option value="dca_daily">DCA Daily</option>
+                            <option value="dca_weekly">DCA Weekly</option>
+                            <option value="dca_monthly">DCA Monthly</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Holding Period -->
+                    <div>
+                        <label style="display: block; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">Holding Period</label>
+                        <select id="asset-period-select" onchange="updateAssetStartDateFilter(); loadDefaultAssets();" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                            <option value="3">3 Years</option>
+                            <option value="4">4 Years</option>
+                            <option value="5" selected>5 Years</option>
+                            <option value="6">6 Years</option>
+                            <option value="7">7 Years</option>
+                            <option value="8">8 Years</option>
+                            <option value="9">9 Years</option>
+                            <option value="10">10 Years</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Start Date From -->
+                    <div>
+                        <label style="display: block; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">Start Date From</label>
+                        <select id="asset-startdate-select" onchange="loadDefaultAssets()" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                            <option value="all" selected>All Periods (2010+)</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Asset Type -->
+                    <div>
+                        <label style="display: block; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">Asset Type</label>
+                        <select id="asset-assettype-select" onchange="loadAvailableAssets(); loadDefaultAssets();" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                            <option value="all">All Assets</option>
+                            <option value="crypto">Crypto</option>
+                            <option value="commodity">Commodities</option>
+                            <option value="index">Indices</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Advanced Filters (Collapsible) -->
+                <div style="margin-top: 1.5rem;">
+                    <button onclick="toggleAssetAdvancedFilters()" style="background: none; border: none; color: var(--gold); cursor: pointer; font-size: 1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; padding: 0;">
+                        <span id="asset-advanced-toggle">▶</span> Show Advanced Filters
+                    </button>
+                    
+                    <div id="asset-advanced-filters" class="hidden" style="margin-top: 1.5rem;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+                            <!-- Min CAGR -->
+                            <div>
+                                <label style="display: block; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">Min CAGR (%)</label>
+                                <input type="number" id="asset-min-cagr" placeholder="e.g., 10" step="0.1" onchange="loadDefaultAssets()" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                                <div style="color: rgba(255, 248, 231, 0.5); font-size: 0.85rem; margin-top: 0.25rem;">Minimum annualized return</div>
+                            </div>
+                            
+                            <!-- Max Drawdown -->
+                            <div>
+                                <label style="display: block; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">Max Drawdown (%)</label>
+                                <input type="number" id="asset-max-drawdown" placeholder="e.g., 30" step="0.1" onchange="loadDefaultAssets()" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                                <div style="color: rgba(255, 248, 231, 0.5); font-size: 0.85rem; margin-top: 0.25rem;">Enter as positive (e.g., 30 for 30%)</div>
+                            </div>
+                            
+                            <!-- Max Loss -->
+                            <div>
+                                <label style="display: block; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">
+                                    Max Loss From <span id="asset-loss-label">Entry</span> (%)
+                                </label>
+                                <input type="number" id="asset-max-loss" placeholder="e.g., 25" step="0.1" onchange="loadDefaultAssets()" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                                <div style="color: rgba(255, 248, 231, 0.5); font-size: 0.85rem; margin-top: 0.25rem;">Enter as positive (e.g., 25 for 25%)</div>
+                            </div>
+                            
+                            <!-- Min Sharpe -->
+                            <div>
+                                <label style="display: block; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">Min Sharpe Ratio</label>
+                                <input type="number" id="asset-min-sharpe" placeholder="e.g., 1.0" step="0.1" onchange="loadDefaultAssets()" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                                <div style="color: rgba(255, 248, 231, 0.5); font-size: 0.85rem; margin-top: 0.25rem;">Risk-adjusted return</div>
+                            </div>
+                            
+                            <!-- Min Sortino -->
+                            <div>
+                                <label style="display: block; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">Min Sortino Ratio</label>
+                                <input type="number" id="asset-min-sortino" placeholder="e.g., 1.5" step="0.1" onchange="loadDefaultAssets()" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                                <div style="color: rgba(255, 248, 231, 0.5); font-size: 0.85rem; margin-top: 0.25rem;">Downside risk-adjusted return</div>
+                            </div>
+                            
+                            <!-- Min Calmar -->
+                            <div>
+                                <label style="display: block; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">Min Calmar Ratio</label>
+                                <input type="number" id="asset-min-calmar" placeholder="e.g., 0.5" step="0.1" onchange="loadDefaultAssets()" style="width: 100%; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                                <div style="color: rgba(255, 248, 231, 0.5); font-size: 0.85rem; margin-top: 0.25rem;">Return vs max drawdown ratio</div>
+                            </div>
+                        </div>
+                        
+                        <button onclick="clearAssetAdvancedFilters()" style="margin-top: 1.5rem; padding: 0.75rem 1.5rem; background: rgba(212, 175, 55, 0.1); color: var(--gold); border: 2px solid var(--gold); border-radius: 6px; cursor: pointer; font-weight: 600;">
+                            Clear Advanced Filters
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Asset Selection (Multi-select) -->
+                <div style="margin-top: 1.5rem;">
+                    <label style="display: block; color: var(--gold); margin-bottom: 0.5rem; font-weight: 600;">
+                        Select Assets (up to 3)
+                    </label>
+                    <div id="asset-selector" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <select id="asset-select-1" onchange="loadAssetDetails()" style="flex: 1; min-width: 200px; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                            <option value="">Loading assets...</option>
+                        </select>
+                        <select id="asset-select-2" onchange="loadAssetDetails()" style="flex: 1; min-width: 200px; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                            <option value="">Select 2nd asset (optional)</option>
+                        </select>
+                        <select id="asset-select-3" onchange="loadAssetDetails()" style="flex: 1; min-width: 200px; padding: 0.75rem; border-radius: 6px; border: 2px solid rgba(212, 175, 55, 0.3); background: var(--charcoal); color: var(--cream); font-size: 1rem;">
+                            <option value="">Select 3rd asset (optional)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading -->
+            <div id="asset-loading" style="text-align: center; padding: 4rem; color: var(--gold); font-size: 1.2rem;">
+                Loading default assets...
+            </div>
+
+            <!-- Results -->
+            <div id="asset-results" style="display: none;">
+                <!-- Stats Overview Tables -->
+                <div id="asset-stats-container"></div>
+                
+                <!-- Charts Section -->
+                <div style="margin-top: 4rem;">
+                    <h2 style="font-size: 2rem; text-align: center; color: var(--gold); margin-bottom: 3rem;">
+                        Performance Over Time
+                    </h2>
+                    
+                    <!-- Chart Grid -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(600px, 1fr)); gap: 3rem;">
+                        <!-- CAGR Chart -->
+                        <div style="background: var(--slate); padding: 2rem; border-radius: 12px;">
+                            <h3 style="color: var(--gold); margin-bottom: 1.5rem; text-align: center;">CAGR Over Time</h3>
+                            <canvas id="chart-cagr"></canvas>
+                        </div>
+                        
+                        <!-- Total Return Chart -->
+                        <div style="background: var(--slate); padding: 2rem; border-radius: 12px;">
+                            <h3 style="color: var(--gold); margin-bottom: 1.5rem; text-align: center;">Total Return %</h3>
+                            <canvas id="chart-total-return"></canvas>
+                        </div>
+                        
+                        <!-- Volatility Chart -->
+                        <div style="background: var(--slate); padding: 2rem; border-radius: 12px;">
+                            <h3 style="color: var(--gold); margin-bottom: 1.5rem; text-align: center;">Volatility %</h3>
+                            <canvas id="chart-volatility"></canvas>
+                        </div>
+                        
+                        <!-- Max Drawdown Chart -->
+                        <div style="background: var(--slate); padding: 2rem; border-radius: 12px;">
+                            <h3 style="color: var(--gold); margin-bottom: 1.5rem; text-align: center;">Max Drawdown %</h3>
+                            <canvas id="chart-drawdown"></canvas>
+                        </div>
+                        
+                        <!-- Max Loss Chart -->
+                        <div style="background: var(--slate); padding: 2rem; border-radius: 12px;">
+                            <h3 style="color: var(--gold); margin-bottom: 1.5rem; text-align: center;"><span id="loss-chart-title">Max Loss From Entry %</span></h3>
+                            <canvas id="chart-max-loss"></canvas>
+                        </div>
+                        
+                        <!-- Sharpe Ratio Chart -->
+                        <div style="background: var(--slate); padding: 2rem; border-radius: 12px;">
+                            <h3 style="color: var(--gold); margin-bottom: 1.5rem; text-align: center;">Sharpe Ratio</h3>
+                            <canvas id="chart-sharpe"></canvas>
+                        </div>
+                        
+                        <!-- Sortino Ratio Chart -->
+                        <div style="background: var(--slate); padding: 2rem; border-radius: 12px;">
+                            <h3 style="color: var(--gold); margin-bottom: 1.5rem; text-align: center;">Sortino Ratio</h3>
+                            <canvas id="chart-sortino"></canvas>
+                        </div>
+                        
+                        <!-- Calmar Ratio Chart -->
+                        <div style="background: var(--slate); padding: 2rem; border-radius: 12px;">
+                            <h3 style="color: var(--gold); margin-bottom: 1.5rem; text-align: center;">Calmar Ratio</h3>
+                            <canvas id="chart-calmar"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Make sure Chart.js is loaded before closing </body> tag -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+
+
+    <!-- END OF Asset Details Page -->
+
+    <script>
+        // Currency data - will be loaded from API
+        let currencies = [];
+        let allCurrencies = [];
+        let depreciatingCurrencies = [];
+
+        // Fetch currencies from API
+        async function loadCurrencies() {
+            try {
+                const response = await fetch('/api/currencies');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Filter out any currencies with null/undefined name or country
+                    allCurrencies = data.data.filter(c => c.name && c.country && c.pair);
+                    
+                    // Separate depreciating currencies (show by default)
+                    depreciatingCurrencies = allCurrencies.filter(c => c.depreciation < 0);
+                    
+                    // Show only depreciating currencies initially
+                    currencies = depreciatingCurrencies;
+                    renderCurrencies(currencies);
+                    console.log(`Loaded ${allCurrencies.length} currencies (${depreciatingCurrencies.length} depreciating, ${allCurrencies.length - depreciatingCurrencies.length} appreciating)`);
+                } else {
+                    console.error('API error:', data.error);
+                    loadFallbackCurrencies();
+                }
+            } catch (error) {
+                console.error('Failed to fetch currencies:', error);
+                loadFallbackCurrencies();
+            }
+        }
+
+        // Fallback data if API fails
+        function loadFallbackCurrencies() {
+            currencies = [
+                { name: 'Turkish Lira', pair: 'TRYUSD', depreciation: -78.9, country: 'Turkey' },
+                { name: 'Argentine Peso', pair: 'ARSUSD', depreciation: -75.3, country: 'Argentina' },
+                { name: 'Egyptian Pound', pair: 'EGPUSD', depreciation: -68.4, country: 'Egypt' },
+                { name: 'Pakistani Rupee', pair: 'PKRUSD', depreciation: -62.7, country: 'Pakistan' },
+                { name: 'Nigerian Naira', pair: 'NGNUSD', depreciation: -58.9, country: 'Nigeria' },
+                { name: 'Brazilian Real', pair: 'BRLUSD', depreciation: -51.8, country: 'Brazil' },
+                { name: 'South African Rand', pair: 'ZARUSD', depreciation: -48.2, country: 'South Africa' },
+                { name: 'Mexican Peso', pair: 'MXNUSD', depreciation: -45.2, country: 'Mexico' },
+                { name: 'Russian Ruble', pair: 'RUBUSD', depreciation: -42.7, country: 'Russia' },
+                { name: 'Colombian Peso', pair: 'COPUSD', depreciation: -41.3, country: 'Colombia' },
+                { name: 'Chilean Peso', pair: 'CLPUSD', depreciation: -39.8, country: 'Chile' },
+                { name: 'Indonesian Rupiah', pair: 'IDRUSD', depreciation: -38.5, country: 'Indonesia' },
+                { name: 'Philippine Peso', pair: 'PHPUSD', depreciation: -36.9, country: 'Philippines' },
+                { name: 'Japanese Yen', pair: 'JPYUSD', depreciation: -35.7, country: 'Japan' },
+                { name: 'Thai Baht', pair: 'THBUSD', depreciation: -34.2, country: 'Thailand' },
+                { name: 'Malaysian Ringgit', pair: 'MYRUSD', depreciation: -33.5, country: 'Malaysia' },
+                { name: 'Indian Rupee', pair: 'INRUSD', depreciation: -32.1, country: 'India' },
+                { name: 'Taiwanese Dollar', pair: 'TWDUSD', depreciation: -29.8, country: 'Taiwan' },
+                { name: 'Korean Won', pair: 'KRWUSD', depreciation: -28.4, country: 'South Korea' },
+                { name: 'Chinese Yuan', pair: 'CNYUSD', depreciation: -27.1, country: 'China' },
+                { name: 'Swedish Krona', pair: 'SEKUSD', depreciation: -25.8, country: 'Sweden' },
+                { name: 'Polish Zloty', pair: 'PLNUSD', depreciation: -24.3, country: 'Poland' },
+                { name: 'Danish Krone', pair: 'DKKUSD', depreciation: -23.7, country: 'Denmark' },
+                { name: 'British Pound', pair: 'GBPUSD', depreciation: -22.3, country: 'United Kingdom' },
+                { name: 'Norwegian Krone', pair: 'NOKUSD', depreciation: -21.7, country: 'Norway' },
+                { name: 'Israeli Shekel', pair: 'ILSUSD', depreciation: -20.9, country: 'Israel' },
+                { name: 'Canadian Dollar', pair: 'CADUSD', depreciation: -19.5, country: 'Canada' },
+                { name: 'Euro', pair: 'EURUSD', depreciation: -18.5, country: 'Eurozone' },
+                { name: 'Australian Dollar', pair: 'AUDUSD', depreciation: -17.2, country: 'Australia' },
+                { name: 'New Zealand Dollar', pair: 'NZDUSD', depreciation: -16.8, country: 'New Zealand' },
+                { name: 'Czech Koruna', pair: 'CZKUSD', depreciation: -15.9, country: 'Czech Republic' },
+                { name: 'Singapore Dollar', pair: 'SGDUSD', depreciation: -14.3, country: 'Singapore' },
+                { name: 'Saudi Riyal', pair: 'SARUSD', depreciation: -12.1, country: 'Saudi Arabia' },
+                { name: 'UAE Dirham', pair: 'AEDUSD', depreciation: -10.8, country: 'UAE' },
+                { name: 'Kuwaiti Dinar', pair: 'KWDUSD', depreciation: -9.3, country: 'Kuwait' },
+                { name: 'Hong Kong Dollar', pair: 'HKDUSD', depreciation: -7.2, country: 'Hong Kong' },
+                { name: 'Swiss Franc', pair: 'CHFUSD', depreciation: -5.1, country: 'Switzerland' },
+            ];
+            allCurrencies = currencies;
+            renderCurrencies(currencies);
+            console.log('Using fallback currency data (37 currencies)');
+        }
+
+        function getColor(depreciation) {
+            // Green for appreciating (positive depreciation)
+            if (depreciation > 0) {
+                if (depreciation > 20) return '#2E7D32'; // Dark green
+                if (depreciation > 10) return '#388E3C'; // Green
+                return '#4CAF50'; // Light green
+            }
+            
+            // Red spectrum for depreciating (negative depreciation)
+            const abs = Math.abs(depreciation);
+            if (abs > 60) return '#8B0000';
+            if (abs > 45) return '#B22222';
+            if (abs > 30) return '#DC143C';
+            if (abs > 20) return '#FF6347';
+            if (abs > 10) return '#FFA500';
+            return '#FFD700';
+        }
+
+        function renderCurrencies(data) {
+            const container = document.getElementById('currency-container');
+            container.innerHTML = data.map(c => `
+                <div class="currency-card" style="border-color: ${getColor(c.depreciation)}">
+                    <h3 class="currency-name">${c.name}</h3>
+                    <p class="currency-pair">${c.pair}</p>
+                    <p style="font-size: 0.9rem; color: rgba(255, 248, 231, 0.5); margin-bottom: 1rem;">
+                        ${c.country}
+                    </p>
+                    <div class="depreciation-value" style="color: ${getColor(c.depreciation)}">
+                        ${c.depreciation > 0 ? '+' : ''}${c.depreciation}%
+                    </div>
+                    <p style="font-size: 1rem; color: rgba(255, 248, 231, 0.7);">
+                        vs USD (10 years)
+                    </p>
+                </div>
+            `).join('');
+        }
+
+        function filterCurrencies() {
+            const search = document.getElementById('currency-search').value.toLowerCase();
+            
+            if (search === '') {
+                // No search - show only depreciating currencies
+                renderCurrencies(depreciatingCurrencies);
+            } else {
+                // Search all currencies (including appreciating ones)
+                const filtered = allCurrencies.filter(c => 
+                    c.name.toLowerCase().includes(search) ||
+                    c.country.toLowerCase().includes(search) ||
+                    c.pair.toLowerCase().includes(search)
+                );
+                renderCurrencies(filtered);
+            }
+        }
+
+        // Function to show a page and update URL
+        // UPDATE your showPage function to include initialization for Asset Details page
+
+        function showPage(pageId) {
+            // Hide all pages
+            document.querySelectorAll('[id^="page-"]').forEach(page => {
+                page.classList.add('hidden');
+            });
+            
+            // Show requested page
+            const targetPage = document.getElementById(`page-${pageId}`);
+            if (targetPage) {
+                targetPage.classList.remove('hidden');
+                
+                // Update URL hash without scrolling
+                history.pushState(null, null, `#${pageId}`);
+                
+                // Update active nav state
+                document.querySelectorAll('.nav-links a').forEach(link => {
+                    link.classList.remove('active');
+                });
+                const activeLink = document.getElementById(`nav-${pageId}`);
+                if (activeLink) {
+                    activeLink.classList.add('active');
+                }
+                
+                // Trigger page-specific loading
+                if (pageId === 'leaderboard') {
+                    loadLeaderboard();
+                } else if (pageId === 'asset') {
+                    // Initialize Asset Details page
+                    initializeAssetDetailsPage();
+                }
+                
+                // Close mobile menu if open
+                const navMenu = document.getElementById('nav-menu');
+                if (navMenu && navMenu.classList.contains('active')) {
+                    toggleMenu();
+                }
+            }
+        }
+
+        // Function to load page from URL hash on page load/refresh
+        function loadPageFromHash() {
+            const hash = window.location.hash.substring(1); // Remove # symbol
+            const validPages = ['home', 'leaderboard', 'asset'];
+            
+            if (hash && validPages.includes(hash)) {
+                showPage(hash);
+            } else {
+                showPage('home'); // Default to home
+            }
+        }
+
+        // Mobile menu toggle (if you have one)
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            if (menu) {
+                menu.classList.toggle('hidden');
+            }
+        }
+        
+        function toggleMenu() {
+            const navMenu = document.getElementById('nav-menu');
+            const hamburger = document.querySelector('.hamburger');
+            
+            if (navMenu) {
+                navMenu.classList.toggle('active');
+            }
+            if (hamburger) {
+                hamburger.classList.toggle('active');
+            }
+        }
+
+        window.addEventListener('hashchange', loadPageFromHash);
+
+        // Load correct page on initial page load
+        window.addEventListener('DOMContentLoaded', loadPageFromHash);
+
+        // REPLACE your loadLeaderboard function with this version (includes pagination)
+
+        let currentPage = 1;
+        let allPeriods = [];
+        const RECORDS_PER_PAGE = 21;
+
+        async function loadLeaderboard() {
+            const strategy = document.getElementById('strategy-select').value;
+            const period = document.getElementById('period-select').value;
+            const assetType = document.getElementById('assettype-select').value;
+            const startDateFrom = document.getElementById('startdate-select').value;
+            const rankingMetric = document.getElementById('ranking-metric').value;  // NEW
+            
+            // Get advanced filters
+            const minCagr = document.getElementById('min-cagr').value;
+            const maxDrawdown = document.getElementById('max-drawdown').value;
+            const maxLoss = document.getElementById('max-loss').value;
+            const minSharpe = document.getElementById('min-sharpe').value;
+            const minSortino = document.getElementById('min-sortino').value;
+            const minCalmar = document.getElementById('min-calmar').value;
+            
+            document.getElementById('leaderboard-loading').style.display = 'block';
+            document.getElementById('leaderboard-results').style.display = 'none';
+            
+            try {
+                let url = `/api/leaderboard?strategy=${strategy}&period=${period}&asset_type=${assetType}&ranking_metric=${rankingMetric}`;
+                if (startDateFrom !== 'all') {
+                    url += `&start_date_from=${startDateFrom}-01-01`;
+                }
+                
+                // Add advanced filters to URL
+                if (minCagr) url += `&min_cagr=${minCagr}`;
+                if (maxDrawdown) url += `&max_drawdown=${maxDrawdown}`;
+                if (maxLoss) url += `&max_loss=${maxLoss}`;
+                if (minSharpe) url += `&min_sharpe=${minSharpe}`;
+                if (minSortino) url += `&min_sortino=${minSortino}`;
+                if (minCalmar) url += `&min_calmar=${minCalmar}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Hide loading, show results
+                    document.getElementById('leaderboard-loading').style.display = 'none';
+                    document.getElementById('leaderboard-results').style.display = 'block';
+                    
+                    // Store all periods for pagination
+                    allPeriods = data.period_breakdown;
+                    currentPage = 1;
+                    
+                    // Render winners - simplified (no CAGR stats in podium)
+                    if (data.winners.first) {
+                        document.getElementById('first-name').textContent = data.winners.first.name;
+                        document.getElementById('first-symbol').textContent = data.winners.first.symbol;
+                        document.getElementById('first-score').textContent = data.winners.first.score;
+                    }
+                    
+                    if (data.winners.second) {
+                        document.getElementById('second-name').textContent = data.winners.second.name;
+                        document.getElementById('second-symbol').textContent = data.winners.second.symbol;
+                        document.getElementById('second-score').textContent = data.winners.second.score;
+                    }
+                    
+                    if (data.winners.third) {
+                        document.getElementById('third-name').textContent = data.winners.third.name;
+                        document.getElementById('third-symbol').textContent = data.winners.third.symbol;
+                        document.getElementById('third-score').textContent = data.winners.third.score;
+                    }
+                    
+                    // Load Winner Stats Overview
+                    if (data.winners.first && data.winners.second && data.winners.third) {
+                        const winnerSymbols = [
+                            data.winners.first.symbol,
+                            data.winners.second.symbol,
+                            data.winners.third.symbol
+                        ];
+                        
+                        // Load stats using ONLY basic filters (no advanced filters)
+                        loadWinnerStats(winnerSymbols, strategy, period, assetType, startDateFrom);
+                    }
+                    
+                    // Render periods table with pagination
+                    renderPeriodsTable(data.ranking_metric);  // Pass ranking metric
+                    
+                    // Update footer with asset description
+                    const strategyNames = {
+                        'lumpsum': 'Lump Sum',
+                        'dca_daily': 'DCA Daily',
+                        'dca_weekly': 'DCA Weekly',
+                        'dca_monthly': 'DCA Monthly'
+                    };
+                    document.getElementById('footer-strategy').textContent = strategyNames[strategy];
+                    document.getElementById('footer-period').textContent = period;
+                    
+                    // Update asset description
+                    let assetDescription = '';
+                    if (assetType === 'crypto') {
+                        assetDescription = 'Data includes: Bitcoin (BTC) and Ethereum (ETH) only.';
+                    } else if (assetType === 'commodity') {
+                        assetDescription = 'Data includes: All commodity futures available from FinancialModelingPrep.';
+                    } else if (assetType === 'index') {
+                        assetDescription = 'Data includes: All stock market indices available from FinancialModelingPrep.';
+                    } else {
+                        assetDescription = 'Data includes: 2 cryptocurrencies (Bitcoin & Ethereum), plus all indices and commodities from FinancialModelingPrep.';
+                    }
+                    document.getElementById('footer-assets').textContent = assetDescription;
+                    
+                } else {
+                    document.getElementById('leaderboard-loading').innerHTML = `
+                        <p style="color: var(--red);">Error loading data: ${data.error}</p>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('leaderboard-loading').innerHTML = `
+                    <p style="color: var(--red);">Failed to load: ${error.message}</p>
+                `;
+            }
+        }
+
+        // ====== NEW FUNCTIONS FOR WINNER STATS OVERVIEW ======
+        
+        async function loadWinnerStats(winnerSymbols, strategy, period, assetType, startDateFrom) {
+            const container = document.getElementById('stats-overview-container');
+            container.innerHTML = '<p style="text-align: center; color: var(--gold);">Loading statistical overview...</p>';
+            
+            try {
+                // Build URL with only basic filters (no advanced filters)
+                let url = `/api/leaderboard/stats?strategy=${strategy}&period=${period}&asset_type=${assetType}&symbols=${winnerSymbols.join(',')}`;
+                if (startDateFrom !== 'all') {
+                    url += `&start_date_from=${startDateFrom}-01-01`;
+                }
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderStatsOverview(data);
+                } else {
+                    container.innerHTML = `<p style="text-align: center; color: var(--red);">Failed to load stats: ${data.error}</p>`;
+                }
+            } catch (error) {
+                container.innerHTML = `<p style="text-align: center; color: var(--red);">Error: ${error.message}</p>`;
+            }
+        }
+
+        // RENDER STATS OVERVIEW =======
+
+        function renderStatsOverview(data) {
+            const container = document.getElementById('stats-overview-container');
+            const metrics = [
+                { key: 'cagr', name: 'CAGR', unit: '%', format: (v) => v >= 0 ? `+${v.toFixed(2)}` : v.toFixed(2) },
+                { key: 'sharpe', name: 'Sharpe Ratio', unit: '', format: (v) => v.toFixed(2) },
+                { key: 'sortino', name: 'Sortino Ratio', unit: '', format: (v) => v.toFixed(2) },
+                { key: 'drawdown', name: 'Max Drawdown', unit: '%', format: (v) => v.toFixed(2) },  // Already negative from API
+                { key: 'max_loss', name: data.loss_metric, unit: '%', format: (v) => v.toFixed(2) },
+                { key: 'volatility', name: 'Volatility', unit: '%', format: (v) => v.toFixed(2) }
+            ];
+            
+            // Function to get color class based on metric and value
+            function getColorClass(metricKey, value) {
+                switch(metricKey) {
+                    case 'cagr':
+                        // Green if positive, red if negative
+                        return value >= 0 ? 'positive' : 'negative';
+                    
+                    case 'sharpe':
+                    case 'sortino':
+                        // Green if > 1, white if 0-1, red if < 0
+                        if (value > 1) return 'positive';
+                        if (value < 0) return 'negative';
+                        return ''; // White (default)
+                    
+                    case 'drawdown':
+                        // NOW DRAWDOWN IS NEGATIVE: -99% to -20%
+                        // Redder as drawdown gets more negative (worse)
+                        if (value < -50) return 'very-negative';  // -99% to -50%
+                        if (value < -30) return 'negative';       // -50% to -30%
+                        if (value < -20) return 'slightly-negative';  // -30% to -20%
+                        return ''; // White for small drawdowns (better than -20%)
+                    
+                    case 'max_loss':
+                        // Red if negative (loss), white if 0 or positive
+                        if (value < -30) return 'very-negative';
+                        if (value < -15) return 'negative';
+                        if (value < 0) return 'slightly-negative';
+                        return ''; // White for 0 or positive
+                    
+                    case 'volatility':
+                        return ''; // Always white
+                    
+                    default:
+                        return '';
+                }
+            }
+            
+            let html = '';
+            
+            // Use symbols_order from API response to maintain first, second, third order
+            const symbolsOrder = data.symbols_order || Object.keys(data.stats);
+            
+            // Create a table for each winner IN ORDER
+            for (const symbol of symbolsOrder) {
+                if (!data.stats[symbol]) continue; // Skip if no stats
+                
+                const stats = data.stats[symbol];
+                const name = data.names[symbol] || symbol;
+                
+                html += `
+                    <div class="stats-table" style="margin-bottom: 3rem;">
+                        <h3 style="color: var(--gold); margin-bottom: 1rem; font-size: 1.5rem;">
+                            ${name} <span style="font-family: 'Courier New', monospace; color: rgba(255, 248, 231, 0.5); font-size: 1rem;">(${symbol})</span>
+                        </h3>
+                        
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Metric</th>
+                                    <th>Min</th>
+                                    <th>5th %ile</th>
+                                    <th>10th %ile</th>
+                                    <th>25th %ile</th>
+                                    <th>Median</th>
+                                    <th>75th %ile</th>
+                                    <th>90th %ile</th>
+                                    <th>95th %ile</th>
+                                    <th>Max</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                metrics.forEach(metric => {
+                    const metricStats = stats[metric.key];
+                    
+                    html += `<tr><td class="metric-name">${metric.name}</td>`;
+                    
+                    // Render each percentile with proper color
+                    ['min', 'p5', 'p10', 'p25', 'median', 'p75', 'p90', 'p95', 'max'].forEach(percentile => {
+                        const value = metricStats[percentile];
+                        const colorClass = getColorClass(metric.key, value);
+                        const isMedian = percentile === 'median';
+                        const medianStyle = isMedian ? 'font-weight: 700; background: rgba(212, 175, 55, 0.05);' : '';
+                        
+                        html += `<td class="${colorClass}" style="${medianStyle}">${metric.format(value)}${metric.unit}</td>`;
+                    });
+                    
+                    html += `</tr>`;
+                });
+                
+                html += `
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = html;
+        }
+
+        // ====== END NEW FUNCTIONS ======
+
+        async function loadWinnerStats(winnerSymbols, strategy, period, assetType, startDateFrom) {
+            const container = document.getElementById('stats-overview-container');
+            container.innerHTML = '<p style="text-align: center; color: var(--gold);">Loading statistical overview...</p>';
+            
+            try {
+                // Build URL with only basic filters (no advanced filters)
+                let url = `/api/leaderboard/stats?strategy=${strategy}&period=${period}&asset_type=${assetType}&symbols=${winnerSymbols.join(',')}`;
+                if (startDateFrom !== 'all') {
+                    url += `&start_date_from=${startDateFrom}-01-01`;
+                }
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderStatsOverview(data);
+                } else {
+                    container.innerHTML = `<p style="text-align: center; color: var(--red);">Failed to load stats: ${data.error}</p>`;
+                }
+            } catch (error) {
+                container.innerHTML = `<p style="text-align: center; color: var(--red);">Error: ${error.message}</p>`;
+            }
+        }
+
+        function renderPeriodsTable(rankingMetric) {
+            rankingMetric = rankingMetric || 'cagr';  // Default to CAGR
+            
+            const startIdx = (currentPage - 1) * RECORDS_PER_PAGE;
+            const endIdx = startIdx + RECORDS_PER_PAGE;
+            const periodsToShow = allPeriods.slice(startIdx, endIdx);
+            const totalPages = Math.ceil(allPeriods.length / RECORDS_PER_PAGE);
+            
+            // Metric display names
+            const metricNames = {
+                'cagr': 'CAGR',
+                'sharpe': 'Sharpe',
+                'sortino': 'Sortino',
+                'calmar': 'Calmar'
+            };
+            
+            const metricName = metricNames[rankingMetric] || 'CAGR';
+            const showCagr = rankingMetric !== 'cagr';  // Show CAGR separately if ranking by other metric
+            
+            const tbody = document.getElementById('periods-table-body');
+            tbody.innerHTML = periodsToShow.map(period => {
+                // Helper function to format metric cell
+                const formatCell = (position) => {
+                    if (!period[position]) return '-';
+                    
+                    const symbol = period[position].symbol;
+                    const rankingValue = period[position].ranking_value;
+                    const cagr = period[position].cagr;
+                    
+                    if (showCagr) {
+                        // Show both ranking metric and CAGR
+                        return `
+                            <strong>${symbol}</strong><br>
+                            <span style="color: var(--green); font-size: 0.85rem;">${rankingValue} ${metricName}</span><br>
+                            <span style="color: rgba(255, 248, 231, 0.6); font-size: 0.8rem;">${cagr}% CAGR</span>
+                        `;
+                    } else {
+                        // Show just CAGR when ranking by CAGR
+                        return `
+                            <strong>${symbol}</strong><br>
+                            <span style="color: var(--green); font-size: 0.85rem;">${cagr}% CAGR</span>
+                        `;
+                    }
+                };
+                
+                return `
+                    <tr style="border-bottom: 1px solid rgba(212,175,55,0.1);">
+                        <td style="padding: 1.25rem; font-family: 'Courier New', monospace;">${period.start_date}</td>
+                        <td style="padding: 1.25rem; font-family: 'Courier New', monospace;">${period.end_date}</td>
+                        <td style="padding: 1.25rem;">${formatCell('first')}</td>
+                        <td style="padding: 1.25rem;">${formatCell('second')}</td>
+                        <td style="padding: 1.25rem;">${formatCell('third')}</td>
+                    </tr>
+                `;
+            }).join('');
+            
+            // Render pagination controls (same as before)
+            const paginationDiv = document.getElementById('pagination-controls');
+            if (totalPages > 1) {
+                let paginationHTML = '<div style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 2rem; flex-wrap: wrap;">';
+                
+                if (currentPage > 1) {
+                    paginationHTML += `<button onclick="changePage(${currentPage - 1})" style="padding: 0.75rem 1.5rem; background: var(--gold); color: var(--charcoal); border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">← Previous</button>`;
+                }
+                
+                paginationHTML += '<div style="display: flex; gap: 0.5rem; align-items: center;">';
+                
+                if (currentPage > 3) {
+                    paginationHTML += `<button onclick="changePage(1)" style="padding: 0.5rem 1rem; background: var(--slate); color: var(--cream); border: 1px solid var(--gold); border-radius: 4px; cursor: pointer;">1</button>`;
+                    if (currentPage > 4) {
+                        paginationHTML += '<span style="color: var(--gold);">...</span>';
+                    }
+                }
+                
+                for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+                    if (i === currentPage) {
+                        paginationHTML += `<button style="padding: 0.5rem 1rem; background: var(--gold); color: var(--charcoal); border: none; border-radius: 4px; font-weight: 700;">${i}</button>`;
+                    } else {
+                        paginationHTML += `<button onclick="changePage(${i})" style="padding: 0.5rem 1rem; background: var(--slate); color: var(--cream); border: 1px solid var(--gold); border-radius: 4px; cursor: pointer;">${i}</button>`;
+                    }
+                }
+                
+                if (currentPage < totalPages - 2) {
+                    if (currentPage < totalPages - 3) {
+                        paginationHTML += '<span style="color: var(--gold);">...</span>';
+                    }
+                    paginationHTML += `<button onclick="changePage(${totalPages})" style="padding: 0.5rem 1rem; background: var(--slate); color: var(--cream); border: 1px solid var(--gold); border-radius: 4px; cursor: pointer;">${totalPages}</button>`;
+                }
+                
+                paginationHTML += '</div>';
+                
+                if (currentPage < totalPages) {
+                    paginationHTML += `<button onclick="changePage(${currentPage + 1})" style="padding: 0.75rem 1.5rem; background: var(--gold); color: var(--charcoal); border: none; border-radius: 6px; cursor: pointer; font-weight: 600;">Next →</button>`;
+                }
+                
+                paginationHTML += '</div>';
+                paginationHTML += `<p style="text-align: center; margin-top: 1rem; color: rgba(255, 248, 231, 0.5); font-size: 0.9rem;">Page ${currentPage} of ${totalPages} (${allPeriods.length} total periods)</p>`;
+                
+                paginationDiv.innerHTML = paginationHTML;
+            } else {
+                paginationDiv.innerHTML = `<p style="text-align: center; margin-top: 1rem; color: rgba(255, 248, 231, 0.5); font-size: 0.9rem;">${allPeriods.length} total periods</p>`;
+            }
+        }
+
+        function changePage(page) {
+            currentPage = page;
+            const rankingMetric = document.getElementById('ranking-metric').value;
+            renderPeriodsTable(rankingMetric);
+            document.getElementById('periods-table-body').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function changePage(page) {
+            currentPage = page;
+            renderPeriodsTable();
+            // Scroll to table
+            document.getElementById('periods-table-body').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // END OF LEADERBOARD JS SCRIPT //
+
+        // Store chart instances
+        let assetCharts = {};
+        let isLoadingDefaultAssets = false;
+
+        // Toggle advanced filters
+        function toggleAssetAdvancedFilters() {
+            const filters = document.getElementById('asset-advanced-filters');
+            const toggle = document.getElementById('asset-advanced-toggle');
+            
+            if (filters.classList.contains('hidden')) {
+                filters.classList.remove('hidden');
+                toggle.textContent = '▼';
+            } else {
+                filters.classList.add('hidden');
+                toggle.textContent = '▶';
+            }
+        }
+
+
+        // Clear advanced filters
+        function clearAssetAdvancedFilters() {
+            document.getElementById('asset-min-cagr').value = '';
+            document.getElementById('asset-max-drawdown').value = '';
+            document.getElementById('asset-max-loss').value = '';
+            document.getElementById('asset-min-sharpe').value = '';
+            document.getElementById('asset-min-sortino').value = '';
+            document.getElementById('asset-min-calmar').value = '';
+            loadDefaultAssets();
+        }
+
+        // Update loss label based on strategy
+        function updateAssetLossLabel() {
+            const strategy = document.getElementById('asset-strategy-select').value;
+            const label = strategy === 'lumpsum' ? 'Entry' : 'Cost';
+            document.getElementById('asset-loss-label').textContent = label;
+        }
+        // Initialize start date filter for asset page
+        function updateAssetStartDateFilter() {
+            const period = parseInt(document.getElementById('asset-period-select').value);
+            const today = new Date();
+            const currentYear = today.getFullYear();
+            const earliestYear = currentYear - period;
+            
+            const select = document.getElementById('asset-startdate-select');
+            const currentValue = select.value;
+            select.innerHTML = '<option value="all">All Periods (2010+)</option>';
+            
+            for (let year = 2010; year <= earliestYear; year++) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = `From ${year} onwards`;
+                select.appendChild(option);
+            }
+            
+            if (currentValue !== 'all') {
+                select.value = currentValue;
+            }
+        }
+
+        // Load available assets based on asset type
+        async function loadAvailableAssets() {
+            const assetType = document.getElementById('asset-assettype-select').value;
+            
+            try {
+                const response = await fetch(`/api/assets/list?asset_type=${assetType}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Store current selections
+                    const currentSelections = [
+                        document.getElementById('asset-select-1').value,
+                        document.getElementById('asset-select-2').value,
+                        document.getElementById('asset-select-3').value
+                    ];
+                    
+                    // Populate all three asset selectors
+                    for (let i = 1; i <= 3; i++) {
+                        const select = document.getElementById(`asset-select-${i}`);
+                        
+                        select.innerHTML = i === 1 
+                            ? '<option value="">Select an asset</option>' 
+                            : `<option value="">Select ${i === 2 ? '2nd' : '3rd'} asset (optional)</option>`;
+                        
+                        data.assets.forEach(asset => {
+                            const option = document.createElement('option');
+                            option.value = asset.symbol;
+                            option.textContent = `${asset.name} (${asset.symbol})`;
+                            select.appendChild(option);
+                        });
+                        
+                        // Restore previous selection if still available
+                        if (currentSelections[i-1]) {
+                            select.value = currentSelections[i-1];
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load assets:', error);
+            }
+        }
+
+        // Load top 3 winners as default assets
+        async function loadDefaultAssets() {
+            if (isLoadingDefaultAssets) return;
+            isLoadingDefaultAssets = true;
+            
+            const strategy = document.getElementById('asset-strategy-select').value;
+            const period = document.getElementById('asset-period-select').value;
+            const assetType = document.getElementById('asset-assettype-select').value;
+            const startDateFrom = document.getElementById('asset-startdate-select').value;
+            
+            // Get advanced filters
+            const minCagr = document.getElementById('asset-min-cagr').value;
+            const maxDrawdown = document.getElementById('asset-max-drawdown').value;
+            const maxLoss = document.getElementById('asset-max-loss').value;
+            const minSharpe = document.getElementById('asset-min-sharpe').value;
+            const minSortino = document.getElementById('asset-min-sortino').value;
+            const minCalmar = document.getElementById('asset-min-calmar').value;
+            
+            try {
+                let url = `/api/leaderboard?strategy=${strategy}&period=${period}&asset_type=${assetType}&ranking_metric=cagr`;
+                if (startDateFrom !== 'all') url += `&start_date_from=${startDateFrom}-01-01`;
+                if (minCagr) url += `&min_cagr=${minCagr}`;
+                if (maxDrawdown) url += `&max_drawdown=${maxDrawdown}`;
+                if (maxLoss) url += `&max_loss=${maxLoss}`;
+                if (minSharpe) url += `&min_sharpe=${minSharpe}`;
+                if (minSortino) url += `&min_sortino=${minSortino}`;
+                if (minCalmar) url += `&min_calmar=${minCalmar}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success && data.winners) {
+                    // Set default selections to top 3 winners
+                    const winners = [
+                        data.winners.first?.symbol || '',
+                        data.winners.second?.symbol || '',
+                        data.winners.third?.symbol || ''
+                    ];
+                    
+                    // Wait a bit for asset selectors to be populated
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    
+                    for (let i = 0; i < 3; i++) {
+                        const select = document.getElementById(`asset-select-${i + 1}`);
+                        if (winners[i] && select.querySelector(`option[value="${winners[i]}"]`)) {
+                            select.value = winners[i];
+                        }
+                    }
+                    
+                    // Now load data for default assets
+                    setTimeout(() => {
+                        loadAssetDetails();
+                    }, 200);
+                }
+            } catch (error) {
+                console.error('Failed to load default assets:', error);
+                document.getElementById('asset-loading').innerHTML = `<p style="color: var(--red);">Failed to load default assets: ${error.message}</p>`;
+            } finally {
+                isLoadingDefaultAssets = false;
+            }
+        }
+
+        // Load asset performance details
+        // Load asset performance details
+        async function loadAssetDetails() {
+            if (isLoadingDefaultAssets) return;
+            
+            const strategy = document.getElementById('asset-strategy-select').value;
+            const period = document.getElementById('asset-period-select').value;
+            const assetType = document.getElementById('asset-assettype-select').value;
+            const startDateFrom = document.getElementById('asset-startdate-select').value;
+            
+            // Get advanced filters
+            const minCagr = document.getElementById('asset-min-cagr').value;
+            const maxDrawdown = document.getElementById('asset-max-drawdown').value;
+            const maxLoss = document.getElementById('asset-max-loss').value;
+            const minSharpe = document.getElementById('asset-min-sharpe').value;
+            const minSortino = document.getElementById('asset-min-sortino').value;
+            const minCalmar = document.getElementById('asset-min-calmar').value;
+            
+            // Get selected assets
+            const selectedAssets = [];
+            for (let i = 1; i <= 3; i++) {
+                const value = document.getElementById(`asset-select-${i}`).value;
+                if (value) selectedAssets.push(value);
+            }
+            
+            if (selectedAssets.length === 0) {
+                document.getElementById('asset-loading').style.display = 'block';
+                document.getElementById('asset-loading').textContent = 'Select at least one asset to view performance details...';
+                document.getElementById('asset-results').style.display = 'none';
+                return;
+            }
+            
+            document.getElementById('asset-loading').style.display = 'block';
+            document.getElementById('asset-loading').textContent = 'Loading asset data...';
+            document.getElementById('asset-results').style.display = 'none';
+            
+            // Update loss chart title
+            document.getElementById('loss-chart-title').textContent = 
+                strategy === 'lumpsum' ? 'Max Loss From Entry %' : 'Max Loss From Cost %';
+            
+            try {
+                let url = `/api/assets/details?strategy=${strategy}&period=${period}&asset_type=${assetType}&symbols=${selectedAssets.join(',')}`;
+                if (startDateFrom !== 'all') url += `&start_date_from=${startDateFrom}-01-01`;
+                if (minCagr) url += `&min_cagr=${minCagr}`;
+                if (maxDrawdown) url += `&max_drawdown=${maxDrawdown}`;
+                if (maxLoss) url += `&max_loss=${maxLoss}`;
+                if (minSharpe) url += `&min_sharpe=${minSharpe}`;
+                if (minSortino) url += `&min_sortino=${minSortino}`;
+                if (minCalmar) url += `&min_calmar=${minCalmar}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('asset-loading').style.display = 'none';
+                    document.getElementById('asset-results').style.display = 'block';
+                    
+                    // Render statistics tables
+                    renderAssetStatistics(data);
+                    
+                    // Render charts
+                    renderAssetCharts(data);
+                } else {
+                    document.getElementById('asset-loading').innerHTML = `<p style="color: var(--red);">Error: ${data.error}</p>`;
+                }
+            } catch (error) {
+                document.getElementById('asset-loading').innerHTML = `<p style="color: var(--red);">Failed to load: ${error.message}</p>`;
+            }
+        }
+
+        // Render statistics tables (similar to Winner Stats Overview)
+        // Render statistics tables with color coding
+        function renderAssetStatistics(data) {
+            const container = document.getElementById('asset-stats-container');
+            
+            const metrics = [
+                { key: 'cagr', name: 'CAGR', unit: '%' },
+                { key: 'total_return', name: 'Total Return', unit: '%' },
+                { key: 'volatility', name: 'Volatility', unit: '%' },
+                { key: 'drawdown', name: 'Max Drawdown', unit: '%' },
+                { key: 'max_loss', name: data.loss_metric, unit: '%' },
+                { key: 'sharpe', name: 'Sharpe Ratio', unit: '' },
+                { key: 'sortino', name: 'Sortino Ratio', unit: '' },
+                { key: 'calmar', name: 'Calmar Ratio', unit: '' }
+            ];
+            
+            // Function to get color class based on metric and value
+            function getColorClass(metricKey, value) {
+                switch(metricKey) {
+                    case 'cagr':
+                    case 'total_return':
+                        return value >= 0 ? 'positive' : 'negative';
+                    
+                    case 'sharpe':
+                    case 'sortino':
+                    case 'calmar':
+                        if (value > 1) return 'positive';
+                        if (value < 0) return 'negative';
+                        return '';
+                    
+                    case 'drawdown':
+                        if (value < -50) return 'very-negative';
+                        if (value < -30) return 'negative';
+                        if (value < -20) return 'slightly-negative';
+                        return '';
+                    
+                    case 'max_loss':
+                        if (value < -30) return 'very-negative';
+                        if (value < -15) return 'negative';
+                        if (value < 0) return 'slightly-negative';
+                        return '';
+                    
+                    case 'volatility':
+                        return '';
+                    
+                    default:
+                        return '';
+                }
+            }
+            
+            let html = '<h2 style="font-size: 2rem; text-align: center; color: var(--gold); margin-bottom: 3rem;">Performance Statistics</h2>';
+            
+            for (const symbol of data.symbols_order) {
+                if (!data.statistics[symbol]) continue;
+                
+                const stats = data.statistics[symbol];
+                const name = data.names[symbol] || symbol;
+                
+                html += `
+                    <div class="stats-table" style="margin-bottom: 3rem;">
+                        <h3 style="color: var(--gold); margin-bottom: 1rem; font-size: 1.5rem;">
+                            ${name} <span style="font-family: 'Courier New', monospace; color: rgba(255, 248, 231, 0.5); font-size: 1rem;">(${symbol})</span>
+                        </h3>
+                        
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Metric</th>
+                                    <th>Min</th>
+                                    <th>5th %ile</th>
+                                    <th>10th %ile</th>
+                                    <th>25th %ile</th>
+                                    <th>Median</th>
+                                    <th>75th %ile</th>
+                                    <th>90th %ile</th>
+                                    <th>95th %ile</th>
+                                    <th>Max</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                metrics.forEach(metric => {
+                    const metricStats = stats[metric.key];
+                    html += `<tr><td class="metric-name">${metric.name}</td>`;
+                    
+                    ['min', 'p5', 'p10', 'p25', 'median', 'p75', 'p90', 'p95', 'max'].forEach(percentile => {
+                        const value = metricStats[percentile];
+                        const colorClass = getColorClass(metric.key, value);
+                        const isMedian = percentile === 'median';
+                        const medianStyle = isMedian ? 'font-weight: 700; background: rgba(212, 175, 55, 0.05);' : '';
+                        
+                        html += `<td class="${colorClass}" style="${medianStyle}">${value}${metric.unit}</td>`;
+                    });
+                    
+                    html += `</tr>`;
+                });
+                
+                html += '</tbody></table></div>';
+            }
+            
+            container.innerHTML = html;
+        }
+
+        // END OF renderAssetStatistics(data)
+        // ADD this function after the previous asset details functions
+
+        // Render all performance charts
+        
+        // Render all performance charts
+        function renderAssetCharts(data) {
+            // Destroy existing charts
+            Object.values(assetCharts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            assetCharts = {};
+            
+            // Color palette for up to 3 assets
+            const colors = [
+                { border: '#FFD700', background: 'rgba(255, 215, 0, 0.1)' },  // Gold
+                { border: '#4CAF50', background: 'rgba(76, 175, 80, 0.1)' },   // Green
+                { border: '#2196F3', background: 'rgba(33, 150, 243, 0.1)' }   // Blue
+            ];
+            
+            const chartConfig = {
+                cagr: { yLabel: 'CAGR (%)', dataKey: 'cagr' },
+                'total-return': { yLabel: 'Total Return (%)', dataKey: 'total_return' },
+                volatility: { yLabel: 'Volatility (%)', dataKey: 'volatility' },
+                drawdown: { yLabel: 'Max Drawdown (%)', dataKey: 'drawdown' },
+                'max-loss': { yLabel: data.loss_metric + ' (%)', dataKey: 'max_loss' },
+                sharpe: { yLabel: 'Sharpe Ratio', dataKey: 'sharpe' },
+                sortino: { yLabel: 'Sortino Ratio', dataKey: 'sortino' },
+                calmar: { yLabel: 'Calmar Ratio', dataKey: 'calmar' }
+            };
+            
+            // Create datasets for each chart
+            Object.keys(chartConfig).forEach(chartId => {
+                const config = chartConfig[chartId];
+                const datasets = [];
+                
+                data.symbols_order.forEach((symbol, index) => {
+                    if (data.time_series[symbol]) {
+                        const seriesData = data.time_series[symbol];
+                        const name = data.names[symbol] || symbol;
+                        
+                        datasets.push({
+                            label: name,
+                            data: seriesData.dates.map((date, i) => ({
+                                x: date,
+                                y: seriesData[config.dataKey][i]
+                            })),
+                            borderColor: colors[index].border,
+                            backgroundColor: colors[index].background,
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.1,
+                            pointRadius: 2,
+                            pointHoverRadius: 5
+                        });
+                    }
+                });
+                
+                // Create chart
+                const ctx = document.getElementById(`chart-${chartId}`);
+                if (!ctx) return;
+                
+                assetCharts[chartId] = new Chart(ctx, {
+                    type: 'line',
+                    data: { datasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
+                        aspectRatio: 2,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    color: '#FFF8E7',
+                                    font: { size: 12 },
+                                    usePointStyle: true,
+                                    padding: 15
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(42, 42, 42, 0.95)',
+                                titleColor: '#D4AF37',
+                                bodyColor: '#FFF8E7',
+                                borderColor: '#D4AF37',
+                                borderWidth: 1,
+                                padding: 12,
+                                displayColors: true,
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.parsed.y.toFixed(2);
+                                        const unit = config.yLabel.includes('%') ? '%' : '';
+                                        return `${context.dataset.label}: ${value}${unit}`;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                type: 'time',
+                                time: {
+                                    unit: 'month',
+                                    displayFormats: { 
+                                        month: 'MMM yyyy',
+                                        quarter: 'MMM yyyy',
+                                        year: 'yyyy'
+                                    }
+                                },
+                                title: {
+                                    display: true,
+                                    text: 'Start Date',
+                                    color: '#D4AF37',
+                                    font: { size: 12, weight: 'bold' }
+                                },
+                                ticks: {
+                                    color: '#FFF8E7',
+                                    maxRotation: 45,
+                                    minRotation: 45
+                                },
+                                grid: {
+                                    color: 'rgba(212, 175, 55, 0.1)'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: config.yLabel,
+                                    color: '#D4AF37',
+                                    font: { size: 12, weight: 'bold' }
+                                },
+                                ticks: {
+                                    color: '#FFF8E7',
+                                    callback: function(value) {
+                                        return value.toFixed(1);
+                                    }
+                                },
+                                grid: {
+                                    color: 'rgba(212, 175, 55, 0.1)'
+                                }
+                            }
+                        }
+                    }
+                });
+            });
+        }
+        // end of renderAssetCharts(data)
+
+        // Initialize on page load
+        updateAssetStartDateFilter();
+        loadAvailableAssets();
+
+        // Initialize on page load (when Asset Details tab is opened)
+        async function initializeAssetDetailsPage() {
+            document.getElementById('asset-loading').style.display = 'block';
+            document.getElementById('asset-loading').textContent = 'Initializing...';
+            document.getElementById('asset-results').style.display = 'none';
+            
+            updateAssetStartDateFilter();
+            updateAssetLossLabel();
+            
+            // First load available assets
+            await loadAvailableAssets();
+            
+            // Then load default top 3 winners
+            await loadDefaultAssets();
+        }
+
+        // Initialize - load currencies from API
+        loadCurrencies();
+
+        // Call initialization when the page loads
+        // Note: This should be called when the Asset Details tab is first opened
+        // You may want to add this to your showPage function for the 'asset' page
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                // Don't auto-initialize, wait for tab to be opened
+            });
+        }
+
+    </script>
+</body>
+</html>
