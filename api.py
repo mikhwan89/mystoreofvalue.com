@@ -10,6 +10,8 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 
+EXCLUDED_SYMBOLS = ['^FVX', '^TYX', '^TNX', 'ZBUSD', 'ZFUSD', 'ZNUSD', 'ZTUSD', '^VXTLT', '^IRX']
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -85,6 +87,7 @@ def get_leaderboard():
     period = int(request.args.get('period', 5))
     asset_type = request.args.get('asset_type', 'all')
     start_date_from = request.args.get('start_date_from', None)
+    ranking_metric = request.args.get('ranking_metric', 'cagr')  # NEW: cagr, sharpe, sortino, calmar
     
     # Advanced filters
     min_cagr = request.args.get('min_cagr', None)
@@ -117,6 +120,11 @@ def get_leaderboard():
             asset_type_filter = "AND asset_type = %s"
             params.append(asset_type)
         
+        # Add treasury exclusion filter
+        exclusion_placeholders = ','.join(['%s'] * len(EXCLUDED_SYMBOLS))
+        treasury_exclusion = f"AND symbol NOT IN ({exclusion_placeholders})"
+        params.extend(EXCLUDED_SYMBOLS)
+        
         # Add start date filter
         start_date_filter = ""
         if start_date_from:
@@ -131,14 +139,10 @@ def get_leaderboard():
             params.append(float(min_cagr))
         
         if max_drawdown:
-            # Drawdown is stored as positive (e.g., 30.5 for 30.5% drawdown)
-            # User wants "max 30% drawdown" = filter to drawdown <= 30
             advanced_filters.append(f"AND max_drawdown_pct <= %s")
             params.append(float(max_drawdown))
         
         if max_loss:
-            # Loss is stored as positive (e.g., 25.0 for 25% loss)
-            # User wants "max 25% loss" = filter to loss <= 25
             advanced_filters.append(f"AND {loss_column} <= %s")
             params.append(float(max_loss))
         
@@ -156,16 +160,27 @@ def get_leaderboard():
         
         advanced_filter_str = " ".join(advanced_filters)
         
+        # Map ranking metric to database column
+        metric_column_map = {
+            'cagr': 'annualized_return_pct',
+            'sharpe': 'sharpe_ratio',
+            'sortino': 'sortino_ratio',
+            'calmar': 'calmar_ratio'
+        }
+        ranking_column = metric_column_map.get(ranking_metric, 'annualized_return_pct')
+        
         # Get period-by-period winners
         cursor.execute(f"""
             WITH ranked_periods AS (
                 SELECT 
-                    symbol, asset_type, start_date, end_date, annualized_return_pct,
-                    ROW_NUMBER() OVER (PARTITION BY start_date ORDER BY annualized_return_pct DESC) as rank
+                    symbol, asset_type, start_date, end_date, 
+                    annualized_return_pct,
+                    {ranking_column} as ranking_value,
+                    ROW_NUMBER() OVER (PARTITION BY start_date ORDER BY {ranking_column} DESC) as rank
                 FROM {table}
-                WHERE holding_period_years = %s {strategy_filter} {asset_type_filter} {start_date_filter} {advanced_filter_str}
+                WHERE holding_period_years = %s {strategy_filter} {asset_type_filter} {treasury_exclusion} {start_date_filter} {advanced_filter_str}
             )
-            SELECT symbol, asset_type, start_date, end_date, annualized_return_pct, rank
+            SELECT symbol, asset_type, start_date, end_date, annualized_return_pct, ranking_value, rank
             FROM ranked_periods
             WHERE rank <= 3
             ORDER BY start_date, rank
@@ -176,7 +191,7 @@ def get_leaderboard():
         period_breakdown = []
         
         for row in period_results:
-            symbol, asset_type_val, start_date, end_date, cagr, rank = row[0], row[1], str(row[2]), str(row[3]), float(row[4]), int(row[5])
+            symbol, asset_type_val, start_date, end_date, cagr, ranking_value, rank = row[0], row[1], str(row[2]), str(row[3]), float(row[4]), float(row[5]) if row[5] else 0, int(row[6])
             
             if symbol not in scores:
                 scores[symbol] = {
@@ -195,7 +210,8 @@ def get_leaderboard():
                 'end_date': end_date,
                 'rank': rank,
                 'symbol': symbol,
-                'cagr': round(cagr, 2)
+                'cagr': round(cagr, 2),
+                'ranking_value': round(ranking_value, 2)
             })
         
         # Calculate statistics for each asset
@@ -230,7 +246,11 @@ def get_leaderboard():
                 }
             
             pos = ['first', 'second', 'third'][item['rank'] - 1]
-            periods_grouped[key][pos] = {'symbol': item['symbol'], 'cagr': item['cagr']}
+            periods_grouped[key][pos] = {
+                'symbol': item['symbol'], 
+                'cagr': item['cagr'],
+                'ranking_value': item['ranking_value']
+            }
         
         periods_list = list(periods_grouped.values())
         
@@ -243,6 +263,7 @@ def get_leaderboard():
             'period': period,
             'asset_type': asset_type,
             'start_date_from': start_date_from,
+            'ranking_metric': ranking_metric,
             'filters_applied': {
                 'min_cagr': min_cagr,
                 'max_drawdown': max_drawdown,
@@ -262,6 +283,7 @@ def get_leaderboard():
             'error': str(e),
             'traceback': traceback.format_exc()
         }), 500
+# UPDATE your /api/leaderboard/stats endpoint in api.py
 
 @app.route('/api/leaderboard/stats', methods=['GET'])
 def get_leaderboard_stats():
@@ -274,11 +296,12 @@ def get_leaderboard_stats():
     period = int(request.args.get('period', 5))
     asset_type = request.args.get('asset_type', 'all')
     start_date_from = request.args.get('start_date_from', None)
-    top_symbols = request.args.get('symbols', '')  # Comma-separated list of winner symbols
+    top_symbols = request.args.get('symbols', '')
     
     if not top_symbols:
         return jsonify({'success': False, 'error': 'No symbols provided'}), 400
     
+    # Preserve symbol order (first, second, third)
     symbols_list = [s.strip() for s in top_symbols.split(',')]
     
     try:
@@ -304,6 +327,11 @@ def get_leaderboard_stats():
             asset_type_filter = "AND asset_type = %s"
             params.append(asset_type)
         
+        # Add treasury exclusion filter
+        exclusion_placeholders = ','.join(['%s'] * len(EXCLUDED_SYMBOLS))
+        treasury_exclusion = f"AND symbol NOT IN ({exclusion_placeholders})"
+        params.extend(EXCLUDED_SYMBOLS)
+        
         start_date_filter = ""
         if start_date_from:
             start_date_filter = "AND start_date >= %s"
@@ -325,7 +353,8 @@ def get_leaderboard_stats():
             FROM {table}
             WHERE holding_period_years = %s 
             {strategy_filter} 
-            {asset_type_filter} 
+            {asset_type_filter}
+            {treasury_exclusion}
             {start_date_filter}
             AND symbol IN ({symbols_placeholder})
             ORDER BY symbol, annualized_return_pct
@@ -350,7 +379,8 @@ def get_leaderboard_stats():
             stats_by_symbol[symbol]['cagr'].append(float(row[1]))
             stats_by_symbol[symbol]['sharpe'].append(float(row[2]) if row[2] else 0)
             stats_by_symbol[symbol]['sortino'].append(float(row[3]) if row[3] else 0)
-            stats_by_symbol[symbol]['drawdown'].append(float(row[4]))
+            # CONVERT DRAWDOWN TO NEGATIVE
+            stats_by_symbol[symbol]['drawdown'].append(-float(row[4]))  # Make negative
             stats_by_symbol[symbol]['max_loss'].append(float(row[5]))
             stats_by_symbol[symbol]['volatility'].append(float(row[6]))
         
@@ -370,16 +400,19 @@ def get_leaderboard_stats():
                 'max': round(float(np.max(sorted_data)), 2)
             }
         
+        # Build stats in the ORDER of symbols_list (first, second, third)
         detailed_stats = {}
-        for symbol, metrics in stats_by_symbol.items():
-            detailed_stats[symbol] = {
-                'cagr': calculate_percentiles(metrics['cagr']),
-                'sharpe': calculate_percentiles(metrics['sharpe']),
-                'sortino': calculate_percentiles(metrics['sortino']),
-                'drawdown': calculate_percentiles(metrics['drawdown']),
-                'max_loss': calculate_percentiles(metrics['max_loss']),
-                'volatility': calculate_percentiles(metrics['volatility'])
-            }
+        for symbol in symbols_list:  # Use symbols_list order, not stats_by_symbol.items()
+            if symbol in stats_by_symbol:
+                metrics = stats_by_symbol[symbol]
+                detailed_stats[symbol] = {
+                    'cagr': calculate_percentiles(metrics['cagr']),
+                    'sharpe': calculate_percentiles(metrics['sharpe']),
+                    'sortino': calculate_percentiles(metrics['sortino']),
+                    'drawdown': calculate_percentiles(metrics['drawdown']),
+                    'max_loss': calculate_percentiles(metrics['max_loss']),
+                    'volatility': calculate_percentiles(metrics['volatility'])
+                }
         
         # Get names for symbols
         names = {}
@@ -397,7 +430,275 @@ def get_leaderboard_stats():
             'period': period,
             'loss_metric': 'Max Loss From Entry' if strategy == 'lumpsum' else 'Max Loss From Cost',
             'stats': detailed_stats,
-            'names': names
+            'names': names,
+            'symbols_order': symbols_list  # Send the order to frontend
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }), 500
+
+# ADD these two endpoints to your api.py
+
+@app.route('/api/assets/list', methods=['GET'])
+def get_assets_list():
+    """Get list of available assets for selection"""
+    asset_type = request.args.get('asset_type', 'all')
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        asset_type_filter = ""
+        params = []
+        
+        # Add treasury exclusion
+        exclusion_placeholders = ','.join(['%s'] * len(EXCLUDED_SYMBOLS))
+        treasury_exclusion = f"AND symbol NOT IN ({exclusion_placeholders})"
+        params.extend(EXCLUDED_SYMBOLS)
+        
+        if asset_type != 'all':
+            asset_type_filter = "AND asset_type = %s"
+            params.append(asset_type)
+        
+        cursor.execute(f"""
+            SELECT DISTINCT symbol, name, asset_type
+            FROM asset_metadata
+            WHERE 1=1 {treasury_exclusion} {asset_type_filter}
+            ORDER BY name
+        """, params)
+        
+        results = cursor.fetchall()
+        assets = [{'symbol': row[0], 'name': row[1], 'asset_type': row[2]} for row in results]
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({'success': True, 'assets': assets})
+    except Exception as e:
+        import traceback
+        return jsonify({'success': False, 'error': str(e), 'traceback': traceback.format_exc()}), 500
+
+
+# REPLACE your /api/assets/details endpoint with this version
+
+@app.route('/api/assets/details', methods=['GET'])
+def get_asset_details():
+    """Get detailed time series performance data for selected assets"""
+    strategy = request.args.get('strategy', 'lumpsum')
+    period = int(request.args.get('period', 5))
+    asset_type = request.args.get('asset_type', 'all')
+    start_date_from = request.args.get('start_date_from', None)
+    symbols = request.args.get('symbols', '')  # Comma-separated list
+    
+    # Advanced filters
+    min_cagr = request.args.get('min_cagr', None)
+    max_drawdown = request.args.get('max_drawdown', None)
+    max_loss = request.args.get('max_loss', None)
+    min_sharpe = request.args.get('min_sharpe', None)
+    min_sortino = request.args.get('min_sortino', None)
+    min_calmar = request.args.get('min_calmar', None)
+    
+    if not symbols:
+        return jsonify({'success': False, 'error': 'No symbols provided'}), 400
+    
+    symbols_list = [s.strip() for s in symbols.split(',') if s.strip()][:3]  # Max 3 assets
+    
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Determine table and loss column
+        if strategy == 'lumpsum':
+            table = 'asset_performance_buy_and_hold'
+            strategy_filter = ""
+            loss_column = 'max_loss_from_entry_pct'
+            params = [period]
+        else:
+            table = 'asset_performance_dca'
+            frequency_map = {'dca_daily': 'daily', 'dca_weekly': 'weekly', 'dca_monthly': 'monthly'}
+            frequency = frequency_map.get(strategy, 'monthly')
+            strategy_filter = "AND dca_frequency = %s"
+            loss_column = 'max_loss_from_cost_pct'
+            params = [period, frequency]
+        
+        asset_type_filter = ""
+        if asset_type != 'all':
+            asset_type_filter = "AND asset_type = %s"
+            params.append(asset_type)
+        
+        # Add treasury exclusion
+        exclusion_placeholders = ','.join(['%s'] * len(EXCLUDED_SYMBOLS))
+        treasury_exclusion = f"AND symbol NOT IN ({exclusion_placeholders})"
+        params.extend(EXCLUDED_SYMBOLS)
+        
+        start_date_filter = ""
+        if start_date_from:
+            start_date_filter = "AND start_date >= %s"
+            params.append(start_date_from)
+        
+        # Build advanced filters
+        advanced_filters = []
+        
+        if min_cagr:
+            advanced_filters.append(f"AND annualized_return_pct >= %s")
+            params.append(float(min_cagr))
+        
+        if max_drawdown:
+            advanced_filters.append(f"AND max_drawdown_pct <= %s")
+            params.append(float(max_drawdown))
+        
+        if max_loss:
+            advanced_filters.append(f"AND {loss_column} <= %s")
+            params.append(float(max_loss))
+        
+        if min_sharpe:
+            advanced_filters.append(f"AND sharpe_ratio >= %s")
+            params.append(float(min_sharpe))
+        
+        if min_sortino:
+            advanced_filters.append(f"AND sortino_ratio >= %s")
+            params.append(float(min_sortino))
+        
+        if min_calmar:
+            advanced_filters.append(f"AND calmar_ratio >= %s")
+            params.append(float(min_calmar))
+        
+        advanced_filter_str = " ".join(advanced_filters)
+        
+        # Add symbols filter
+        symbols_placeholder = ','.join(['%s'] * len(symbols_list))
+        params.extend(symbols_list)
+        
+        # Get time series data
+        cursor.execute(f"""
+            SELECT 
+                symbol,
+                start_date,
+                end_date,
+                annualized_return_pct,
+                total_return_pct,
+                volatility_pct,
+                max_drawdown_pct,
+                {loss_column} as max_loss_pct,
+                sharpe_ratio,
+                sortino_ratio,
+                calmar_ratio
+            FROM {table}
+            WHERE holding_period_years = %s 
+            {strategy_filter}
+            {asset_type_filter}
+            {treasury_exclusion}
+            {start_date_filter}
+            {advanced_filter_str}
+            AND symbol IN ({symbols_placeholder})
+            ORDER BY symbol, start_date
+        """, params)
+        
+        results = cursor.fetchall()
+        
+        # Organize data by symbol
+        time_series_data = {}
+        stats_data = {}
+        
+        for row in results:
+            symbol = row[0]
+            if symbol not in time_series_data:
+                time_series_data[symbol] = {
+                    'dates': [],
+                    'cagr': [],
+                    'total_return': [],
+                    'volatility': [],
+                    'drawdown': [],
+                    'max_loss': [],
+                    'sharpe': [],
+                    'sortino': [],
+                    'calmar': []
+                }
+                stats_data[symbol] = {
+                    'cagr': [],
+                    'total_return': [],
+                    'volatility': [],
+                    'drawdown': [],
+                    'max_loss': [],
+                    'sharpe': [],
+                    'sortino': [],
+                    'calmar': []
+                }
+            
+            time_series_data[symbol]['dates'].append(str(row[1]))
+            time_series_data[symbol]['cagr'].append(float(row[3]))
+            time_series_data[symbol]['total_return'].append(float(row[4]))
+            time_series_data[symbol]['volatility'].append(float(row[5]))
+            time_series_data[symbol]['drawdown'].append(-float(row[6]))  # Negative for consistency
+            time_series_data[symbol]['max_loss'].append(float(row[7]))
+            time_series_data[symbol]['sharpe'].append(float(row[8]) if row[8] else 0)
+            time_series_data[symbol]['sortino'].append(float(row[9]) if row[9] else 0)
+            time_series_data[symbol]['calmar'].append(float(row[10]) if row[10] else 0)
+            
+            # Collect for stats
+            stats_data[symbol]['cagr'].append(float(row[3]))
+            stats_data[symbol]['total_return'].append(float(row[4]))
+            stats_data[symbol]['volatility'].append(float(row[5]))
+            stats_data[symbol]['drawdown'].append(-float(row[6]))
+            stats_data[symbol]['max_loss'].append(float(row[7]))
+            stats_data[symbol]['sharpe'].append(float(row[8]) if row[8] else 0)
+            stats_data[symbol]['sortino'].append(float(row[9]) if row[9] else 0)
+            stats_data[symbol]['calmar'].append(float(row[10]) if row[10] else 0)
+        
+        # Calculate statistics
+        def calculate_percentiles(data):
+            import numpy as np
+            sorted_data = sorted(data)
+            return {
+                'min': round(float(np.min(sorted_data)), 2),
+                'p5': round(float(np.percentile(sorted_data, 5)), 2),
+                'p10': round(float(np.percentile(sorted_data, 10)), 2),
+                'p25': round(float(np.percentile(sorted_data, 25)), 2),
+                'median': round(float(np.percentile(sorted_data, 50)), 2),
+                'p75': round(float(np.percentile(sorted_data, 75)), 2),
+                'p90': round(float(np.percentile(sorted_data, 90)), 2),
+                'p95': round(float(np.percentile(sorted_data, 95)), 2),
+                'max': round(float(np.max(sorted_data)), 2)
+            }
+        
+        statistics = {}
+        for symbol in symbols_list:
+            if symbol in stats_data and len(stats_data[symbol]['cagr']) > 0:
+                statistics[symbol] = {
+                    'cagr': calculate_percentiles(stats_data[symbol]['cagr']),
+                    'total_return': calculate_percentiles(stats_data[symbol]['total_return']),
+                    'volatility': calculate_percentiles(stats_data[symbol]['volatility']),
+                    'drawdown': calculate_percentiles(stats_data[symbol]['drawdown']),
+                    'max_loss': calculate_percentiles(stats_data[symbol]['max_loss']),
+                    'sharpe': calculate_percentiles(stats_data[symbol]['sharpe']),
+                    'sortino': calculate_percentiles(stats_data[symbol]['sortino']),
+                    'calmar': calculate_percentiles(stats_data[symbol]['calmar'])
+                }
+        
+        # Get names
+        names = {}
+        for symbol in symbols_list:
+            cursor.execute("SELECT name FROM asset_metadata WHERE symbol = %s LIMIT 1", (symbol,))
+            result = cursor.fetchone()
+            names[symbol] = result[0] if result else symbol
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'strategy': strategy,
+            'period': period,
+            'loss_metric': 'Max Loss From Entry' if strategy == 'lumpsum' else 'Max Loss From Cost',
+            'time_series': time_series_data,
+            'statistics': statistics,
+            'names': names,
+            'symbols_order': symbols_list
         })
         
     except Exception as e:
