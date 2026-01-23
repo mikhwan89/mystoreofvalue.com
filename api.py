@@ -80,6 +80,10 @@ def get_currencies():
         import traceback
         return jsonify({'success': False, 'error': str(e), 'traceback': traceback.format_exc()}), 500
 
+# REPLACE your entire /api/leaderboard endpoint with this corrected version
+
+# REPLACE your /api/leaderboard endpoint - Fix the ambiguous column references
+
 @app.route('/api/leaderboard', methods=['GET'])
 def get_leaderboard():
     """Get leaderboard with winners podium and period breakdown"""
@@ -87,7 +91,8 @@ def get_leaderboard():
     period = int(request.args.get('period', 5))
     asset_type = request.args.get('asset_type', 'all')
     start_date_from = request.args.get('start_date_from', None)
-    ranking_metric = request.args.get('ranking_metric', 'cagr')  # NEW: cagr, sharpe, sortino, calmar
+    ranking_metric = request.args.get('ranking_metric', 'cagr')
+    exchanges = request.args.get('exchanges', 'NULL,NASDAQ,NYSE,SNP,DJI,MSC,ICEF,NIM')
     
     # Advanced filters
     min_cagr = request.args.get('min_cagr', None)
@@ -101,61 +106,84 @@ def get_leaderboard():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Determine table and filters
+        # Determine table and filters - INITIALIZE params here
         if strategy == 'lumpsum':
             table = 'asset_performance_buy_and_hold'
             strategy_filter = ""
             loss_column = 'max_loss_from_entry_pct'
-            params = [period]
+            params = [period]  # START params list
         else:
             table = 'asset_performance_dca'
             frequency_map = {'dca_daily': 'daily', 'dca_weekly': 'weekly', 'dca_monthly': 'monthly'}
             frequency = frequency_map.get(strategy, 'monthly')
             strategy_filter = "AND dca_frequency = %s"
             loss_column = 'max_loss_from_cost_pct'
-            params = [period, frequency]
+            params = [period, frequency]  # START params list
         
+        # Asset type filter - USE a.asset_type
         asset_type_filter = ""
         if asset_type != 'all':
-            asset_type_filter = "AND asset_type = %s"
+            asset_type_filter = "AND a.asset_type = %s"
             params.append(asset_type)
         
-        # Add treasury exclusion filter
+        # Add treasury exclusion filter - USE a.symbol
         exclusion_placeholders = ','.join(['%s'] * len(EXCLUDED_SYMBOLS))
-        treasury_exclusion = f"AND symbol NOT IN ({exclusion_placeholders})"
+        treasury_exclusion = f"AND a.symbol NOT IN ({exclusion_placeholders})"
         params.extend(EXCLUDED_SYMBOLS)
         
-        # Add start date filter
+        # Build exchange filter - USE m.exchange
+        exchange_filter = ""
+        exchange_list = [e.strip() for e in exchanges.split(',') if e.strip()]
+        
+        if exchange_list:
+            has_null = 'NULL' in exchange_list
+            actual_exchanges = [e for e in exchange_list if e != 'NULL']
+            
+            if has_null and actual_exchanges:
+                # Include both NULL and specific exchanges
+                exchange_placeholders = ','.join(['%s'] * len(actual_exchanges))
+                exchange_filter = f"AND (m.exchange IS NULL OR m.exchange IN ({exchange_placeholders}))"
+                params.extend(actual_exchanges)
+            elif has_null:
+                # Only NULL
+                exchange_filter = "AND m.exchange IS NULL"
+            elif actual_exchanges:
+                # Only specific exchanges
+                exchange_placeholders = ','.join(['%s'] * len(actual_exchanges))
+                exchange_filter = f"AND m.exchange IN ({exchange_placeholders})"
+                params.extend(actual_exchanges)
+        
+        # Add start date filter - USE a.start_date
         start_date_filter = ""
         if start_date_from:
-            start_date_filter = "AND start_date >= %s"
+            start_date_filter = "AND a.start_date >= %s"
             params.append(start_date_from)
         
-        # Build advanced filters
+        # Build advanced filters - all use a. prefix
         advanced_filters = []
         
         if min_cagr:
-            advanced_filters.append(f"AND annualized_return_pct >= %s")
+            advanced_filters.append(f"AND a.annualized_return_pct >= %s")
             params.append(float(min_cagr))
         
         if max_drawdown:
-            advanced_filters.append(f"AND max_drawdown_pct <= %s")
+            advanced_filters.append(f"AND a.max_drawdown_pct <= %s")
             params.append(float(max_drawdown))
         
         if max_loss:
-            advanced_filters.append(f"AND {loss_column} <= %s")
+            advanced_filters.append(f"AND a.{loss_column} <= %s")
             params.append(float(max_loss))
         
         if min_sharpe:
-            advanced_filters.append(f"AND sharpe_ratio >= %s")
+            advanced_filters.append(f"AND a.sharpe_ratio >= %s")
             params.append(float(min_sharpe))
         
         if min_sortino:
-            advanced_filters.append(f"AND sortino_ratio >= %s")
+            advanced_filters.append(f"AND a.sortino_ratio >= %s")
             params.append(float(min_sortino))
         
         if min_calmar:
-            advanced_filters.append(f"AND calmar_ratio >= %s")
+            advanced_filters.append(f"AND a.calmar_ratio >= %s")
             params.append(float(min_calmar))
         
         advanced_filter_str = " ".join(advanced_filters)
@@ -173,12 +201,13 @@ def get_leaderboard():
         cursor.execute(f"""
             WITH ranked_periods AS (
                 SELECT 
-                    symbol, asset_type, start_date, end_date, 
-                    annualized_return_pct,
-                    {ranking_column} as ranking_value,
-                    ROW_NUMBER() OVER (PARTITION BY start_date ORDER BY {ranking_column} DESC) as rank
-                FROM {table}
-                WHERE holding_period_years = %s {strategy_filter} {asset_type_filter} {treasury_exclusion} {start_date_filter} {advanced_filter_str}
+                    a.symbol, a.asset_type, a.start_date, a.end_date, 
+                    a.annualized_return_pct,
+                    a.{ranking_column} as ranking_value,
+                    ROW_NUMBER() OVER (PARTITION BY a.start_date ORDER BY a.{ranking_column} DESC) as rank
+                FROM {table} a
+                JOIN asset_metadata m ON a.symbol = m.symbol
+                WHERE a.holding_period_years = %s {strategy_filter} {asset_type_filter} {treasury_exclusion} {exchange_filter} {start_date_filter} {advanced_filter_str}
             )
             SELECT symbol, asset_type, start_date, end_date, annualized_return_pct, ranking_value, rank
             FROM ranked_periods
@@ -270,7 +299,8 @@ def get_leaderboard():
                 'max_loss': max_loss,
                 'min_sharpe': min_sharpe,
                 'min_sortino': min_sortino,
-                'min_calmar': min_calmar
+                'min_calmar': min_calmar,
+                'exchanges': exchanges
             },
             'winners': winners,
             'full_rankings': sorted_scores[:20],
@@ -285,30 +315,28 @@ def get_leaderboard():
         }), 500
 # UPDATE your /api/leaderboard/stats endpoint in api.py
 
+# REPLACE or UPDATE your /api/leaderboard/stats endpoint to add exchanges parameter
+
 @app.route('/api/leaderboard/stats', methods=['GET'])
 def get_leaderboard_stats():
-    """
-    Get detailed statistical breakdown of top 3 winners
-    Uses only basic filters (strategy, period, asset_type, start_date_from)
-    Ignores advanced filters to show true performance distribution
-    """
+    """Get detailed statistics for top 3 winners"""
+    symbols_param = request.args.get('symbols', '')
     strategy = request.args.get('strategy', 'lumpsum')
     period = int(request.args.get('period', 5))
     asset_type = request.args.get('asset_type', 'all')
     start_date_from = request.args.get('start_date_from', None)
-    top_symbols = request.args.get('symbols', '')
+    exchanges = request.args.get('exchanges', 'NULL,NASDAQ,NYSE,SNP,DJI,MSC,ICEF,NIM')  # ADD THIS
     
-    if not top_symbols:
+    if not symbols_param:
         return jsonify({'success': False, 'error': 'No symbols provided'}), 400
     
-    # Preserve symbol order (first, second, third)
-    symbols_list = [s.strip() for s in top_symbols.split(',')]
+    symbols_list = [s.strip() for s in symbols_param.split(',') if s.strip()]
     
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Determine table and filters
+        # Determine table and loss column - INITIALIZE params
         if strategy == 'lumpsum':
             table = 'asset_performance_buy_and_hold'
             strategy_filter = ""
@@ -318,73 +346,102 @@ def get_leaderboard_stats():
             table = 'asset_performance_dca'
             frequency_map = {'dca_daily': 'daily', 'dca_weekly': 'weekly', 'dca_monthly': 'monthly'}
             frequency = frequency_map.get(strategy, 'monthly')
-            strategy_filter = "AND dca_frequency = %s"
+            strategy_filter = "AND a.dca_frequency = %s"
             loss_column = 'max_loss_from_cost_pct'
             params = [period, frequency]
         
+        # Asset type filter
         asset_type_filter = ""
         if asset_type != 'all':
-            asset_type_filter = "AND asset_type = %s"
+            asset_type_filter = "AND a.asset_type = %s"
             params.append(asset_type)
         
-        # Add treasury exclusion filter
+        # Add treasury exclusion
         exclusion_placeholders = ','.join(['%s'] * len(EXCLUDED_SYMBOLS))
-        treasury_exclusion = f"AND symbol NOT IN ({exclusion_placeholders})"
+        treasury_exclusion = f"AND a.symbol NOT IN ({exclusion_placeholders})"
         params.extend(EXCLUDED_SYMBOLS)
         
+        # Build exchange filter - ADD THIS SECTION
+        exchange_filter = ""
+        exchange_list = [e.strip() for e in exchanges.split(',') if e.strip()]
+        
+        if exchange_list:
+            has_null = 'NULL' in exchange_list
+            actual_exchanges = [e for e in exchange_list if e != 'NULL']
+            
+            if has_null and actual_exchanges:
+                exchange_placeholders = ','.join(['%s'] * len(actual_exchanges))
+                exchange_filter = f"AND (m.exchange IS NULL OR m.exchange IN ({exchange_placeholders}))"
+                params.extend(actual_exchanges)
+            elif has_null:
+                exchange_filter = "AND m.exchange IS NULL"
+            elif actual_exchanges:
+                exchange_placeholders = ','.join(['%s'] * len(actual_exchanges))
+                exchange_filter = f"AND m.exchange IN ({exchange_placeholders})"
+                params.extend(actual_exchanges)
+        
+        # Start date filter
         start_date_filter = ""
         if start_date_from:
-            start_date_filter = "AND start_date >= %s"
+            start_date_filter = "AND a.start_date >= %s"
             params.append(start_date_from)
         
-        # Query all periods for the top symbols
+        # Symbols filter
         symbols_placeholder = ','.join(['%s'] * len(symbols_list))
         params.extend(symbols_list)
         
+        # Get all performance data for these symbols - JOIN with asset_metadata for exchange filter
         cursor.execute(f"""
             SELECT 
-                symbol,
-                annualized_return_pct,
-                sharpe_ratio,
-                sortino_ratio,
-                max_drawdown_pct,
-                {loss_column} as max_loss_pct,
-                volatility_pct
-            FROM {table}
-            WHERE holding_period_years = %s 
-            {strategy_filter} 
+                a.symbol,
+                a.annualized_return_pct,
+                a.total_return_pct,
+                a.volatility_pct,
+                a.max_drawdown_pct,
+                a.{loss_column} as max_loss_pct,
+                a.sharpe_ratio,
+                a.sortino_ratio,
+                a.calmar_ratio
+            FROM {table} a
+            JOIN asset_metadata m ON a.symbol = m.symbol
+            WHERE a.holding_period_years = %s 
+            {strategy_filter}
             {asset_type_filter}
             {treasury_exclusion}
+            {exchange_filter}
             {start_date_filter}
-            AND symbol IN ({symbols_placeholder})
-            ORDER BY symbol, annualized_return_pct
+            AND a.symbol IN ({symbols_placeholder})
+            ORDER BY a.symbol, a.start_date
         """, params)
         
         results = cursor.fetchall()
         
-        # Organize data by symbol
+        # Organize by symbol
         stats_by_symbol = {}
         for row in results:
             symbol = row[0]
             if symbol not in stats_by_symbol:
                 stats_by_symbol[symbol] = {
                     'cagr': [],
-                    'sharpe': [],
-                    'sortino': [],
+                    'total_return': [],
+                    'volatility': [],
                     'drawdown': [],
                     'max_loss': [],
-                    'volatility': []
+                    'sharpe': [],
+                    'sortino': [],
+                    'calmar': []
                 }
             
             stats_by_symbol[symbol]['cagr'].append(float(row[1]))
-            stats_by_symbol[symbol]['sharpe'].append(float(row[2]) if row[2] else 0)
-            stats_by_symbol[symbol]['sortino'].append(float(row[3]) if row[3] else 0)
-            # CONVERT DRAWDOWN TO NEGATIVE
-            stats_by_symbol[symbol]['drawdown'].append(-float(row[4]))  # Make negative
+            stats_by_symbol[symbol]['total_return'].append(float(row[2]))
+            stats_by_symbol[symbol]['volatility'].append(float(row[3]))
+            stats_by_symbol[symbol]['drawdown'].append(-float(row[4]))  # Negative
             stats_by_symbol[symbol]['max_loss'].append(float(row[5]))
-            stats_by_symbol[symbol]['volatility'].append(float(row[6]))
+            stats_by_symbol[symbol]['sharpe'].append(float(row[6]) if row[6] else 0)
+            stats_by_symbol[symbol]['sortino'].append(float(row[7]) if row[7] else 0)
+            stats_by_symbol[symbol]['calmar'].append(float(row[8]) if row[8] else 0)
         
-        # Calculate percentiles for each symbol
+        # Calculate statistics
         def calculate_percentiles(data):
             import numpy as np
             sorted_data = sorted(data)
@@ -400,38 +457,38 @@ def get_leaderboard_stats():
                 'max': round(float(np.max(sorted_data)), 2)
             }
         
-        # Build stats in the ORDER of symbols_list (first, second, third)
         detailed_stats = {}
-        for symbol in symbols_list:  # Use symbols_list order, not stats_by_symbol.items()
-            if symbol in stats_by_symbol:
-                metrics = stats_by_symbol[symbol]
+        # Preserve the order of symbols as passed in
+        for symbol in symbols_list:
+            if symbol in stats_by_symbol and len(stats_by_symbol[symbol]['cagr']) > 0:
                 detailed_stats[symbol] = {
-                    'cagr': calculate_percentiles(metrics['cagr']),
-                    'sharpe': calculate_percentiles(metrics['sharpe']),
-                    'sortino': calculate_percentiles(metrics['sortino']),
-                    'drawdown': calculate_percentiles(metrics['drawdown']),
-                    'max_loss': calculate_percentiles(metrics['max_loss']),
-                    'volatility': calculate_percentiles(metrics['volatility'])
+                    'cagr': calculate_percentiles(stats_by_symbol[symbol]['cagr']),
+                    'total_return': calculate_percentiles(stats_by_symbol[symbol]['total_return']),
+                    'volatility': calculate_percentiles(stats_by_symbol[symbol]['volatility']),
+                    'drawdown': calculate_percentiles(stats_by_symbol[symbol]['drawdown']),
+                    'max_loss': calculate_percentiles(stats_by_symbol[symbol]['max_loss']),
+                    'sharpe': calculate_percentiles(stats_by_symbol[symbol]['sharpe']),
+                    'sortino': calculate_percentiles(stats_by_symbol[symbol]['sortino']),
+                    'calmar': calculate_percentiles(stats_by_symbol[symbol]['calmar'])
                 }
         
-        # Get names for symbols
+        # Get names
         names = {}
         for symbol in symbols_list:
-            cursor.execute("SELECT name FROM asset_metadata WHERE symbol = %s LIMIT 1", (symbol,))
-            result = cursor.fetchone()
-            names[symbol] = result[0] if result else symbol
+            if symbol in stats_by_symbol:
+                cursor.execute("SELECT name FROM asset_metadata WHERE symbol = %s LIMIT 1", (symbol,))
+                result = cursor.fetchone()
+                names[symbol] = result[0] if result else symbol
         
         cursor.close()
         conn.close()
         
         return jsonify({
             'success': True,
-            'strategy': strategy,
-            'period': period,
-            'loss_metric': 'Max Loss From Entry' if strategy == 'lumpsum' else 'Max Loss From Cost',
             'stats': detailed_stats,
             'names': names,
-            'symbols_order': symbols_list  # Send the order to frontend
+            'symbols_order': symbols_list,  # Preserve order
+            'loss_metric': 'Max Loss From Entry' if strategy == 'lumpsum' else 'Max Loss From Cost'
         })
         
     except Exception as e:
@@ -448,12 +505,13 @@ def get_leaderboard_stats():
 def get_assets_list():
     """Get list of available assets for selection"""
     asset_type = request.args.get('asset_type', 'all')
+    exchanges = request.args.get('exchanges', 'NULL,NASDAQ,NYSE,SNP,DJI,MSC,ICEF,NIM')
     
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        asset_type_filter = ""
+        # Initialize params list
         params = []
         
         # Add treasury exclusion
@@ -461,14 +519,35 @@ def get_assets_list():
         treasury_exclusion = f"AND symbol NOT IN ({exclusion_placeholders})"
         params.extend(EXCLUDED_SYMBOLS)
         
+        # Asset type filter
+        asset_type_filter = ""
         if asset_type != 'all':
             asset_type_filter = "AND asset_type = %s"
             params.append(asset_type)
         
+        # Build exchange filter
+        exchange_filter = ""
+        exchange_list = [e.strip() for e in exchanges.split(',') if e.strip()]
+        
+        if exchange_list:
+            has_null = 'NULL' in exchange_list
+            actual_exchanges = [e for e in exchange_list if e != 'NULL']
+            
+            if has_null and actual_exchanges:
+                exchange_placeholders = ','.join(['%s'] * len(actual_exchanges))
+                exchange_filter = f"AND (exchange IS NULL OR exchange IN ({exchange_placeholders}))"
+                params.extend(actual_exchanges)
+            elif has_null:
+                exchange_filter = "AND exchange IS NULL"
+            elif actual_exchanges:
+                exchange_placeholders = ','.join(['%s'] * len(actual_exchanges))
+                exchange_filter = f"AND exchange IN ({exchange_placeholders})"
+                params.extend(actual_exchanges)
+        
         cursor.execute(f"""
             SELECT DISTINCT symbol, name, asset_type
             FROM asset_metadata
-            WHERE 1=1 {treasury_exclusion} {asset_type_filter}
+            WHERE 1=1 {treasury_exclusion} {asset_type_filter} {exchange_filter}
             ORDER BY name
         """, params)
         
@@ -484,6 +563,7 @@ def get_assets_list():
         return jsonify({'success': False, 'error': str(e), 'traceback': traceback.format_exc()}), 500
 
 
+
 # REPLACE your /api/assets/details endpoint with this version
 
 @app.route('/api/assets/details', methods=['GET'])
@@ -494,6 +574,7 @@ def get_asset_details():
     asset_type = request.args.get('asset_type', 'all')
     start_date_from = request.args.get('start_date_from', None)
     symbols = request.args.get('symbols', '')  # Comma-separated list
+    exchanges = request.args.get('exchanges', 'NULL,NASDAQ,NYSE,SNP,DJI,MSC,ICEF,NIM')
     
     # Advanced filters
     min_cagr = request.args.get('min_cagr', None)
@@ -522,50 +603,69 @@ def get_asset_details():
             table = 'asset_performance_dca'
             frequency_map = {'dca_daily': 'daily', 'dca_weekly': 'weekly', 'dca_monthly': 'monthly'}
             frequency = frequency_map.get(strategy, 'monthly')
-            strategy_filter = "AND dca_frequency = %s"
+            strategy_filter = "AND a.dca_frequency = %s"
             loss_column = 'max_loss_from_cost_pct'
             params = [period, frequency]
         
         asset_type_filter = ""
         if asset_type != 'all':
-            asset_type_filter = "AND asset_type = %s"
+            asset_type_filter = "AND a.asset_type = %s"
             params.append(asset_type)
         
         # Add treasury exclusion
         exclusion_placeholders = ','.join(['%s'] * len(EXCLUDED_SYMBOLS))
-        treasury_exclusion = f"AND symbol NOT IN ({exclusion_placeholders})"
+        treasury_exclusion = f"AND a.symbol NOT IN ({exclusion_placeholders})"
         params.extend(EXCLUDED_SYMBOLS)
         
+        # Build exchange filter - ADD THIS SECTION
+        exchange_filter = ""
+        exchange_list = [e.strip() for e in exchanges.split(',') if e.strip()]
+        
+        if exchange_list:
+            has_null = 'NULL' in exchange_list
+            actual_exchanges = [e for e in exchange_list if e != 'NULL']
+            
+            if has_null and actual_exchanges:
+                exchange_placeholders = ','.join(['%s'] * len(actual_exchanges))
+                exchange_filter = f"AND (m.exchange IS NULL OR m.exchange IN ({exchange_placeholders}))"
+                params.extend(actual_exchanges)
+            elif has_null:
+                exchange_filter = "AND m.exchange IS NULL"
+            elif actual_exchanges:
+                exchange_placeholders = ','.join(['%s'] * len(actual_exchanges))
+                exchange_filter = f"AND m.exchange IN ({exchange_placeholders})"
+                params.extend(actual_exchanges)
+
         start_date_filter = ""
         if start_date_from:
-            start_date_filter = "AND start_date >= %s"
+            start_date_filter = "AND a.start_date >= %s"
             params.append(start_date_from)
         
         # Build advanced filters
         advanced_filters = []
         
         if min_cagr:
-            advanced_filters.append(f"AND annualized_return_pct >= %s")
+            advanced_filters.append(f"AND a.annualized_return_pct >= %s")
             params.append(float(min_cagr))
         
         if max_drawdown:
-            advanced_filters.append(f"AND max_drawdown_pct <= %s")
+            advanced_filters.append(f"AND a.max_drawdown_pct <= %s")
             params.append(float(max_drawdown))
         
         if max_loss:
-            advanced_filters.append(f"AND {loss_column} <= %s")
+            advanced_filters.append(f"AND a.{loss_column} <= %s")
             params.append(float(max_loss))
         
         if min_sharpe:
-            advanced_filters.append(f"AND sharpe_ratio >= %s")
+            advanced_filters.append(f"AND a.sharpe_ratio >= %s")
             params.append(float(min_sharpe))
         
         if min_sortino:
-            advanced_filters.append(f"AND sortino_ratio >= %s")
+            advanced_filters.append(f"AND a.sortino_ratio >= %s")
             params.append(float(min_sortino))
         
         if min_calmar:
-            advanced_filters.append(f"AND calmar_ratio >= %s")
+            advanced_filters.append(f"AND a.calmar_ratio >= %s")
             params.append(float(min_calmar))
         
         advanced_filter_str = " ".join(advanced_filters)
@@ -577,31 +677,33 @@ def get_asset_details():
         # Get time series data
         cursor.execute(f"""
             SELECT 
-                symbol,
-                start_date,
-                end_date,
-                annualized_return_pct,
-                total_return_pct,
-                volatility_pct,
-                max_drawdown_pct,
-                {loss_column} as max_loss_pct,
-                sharpe_ratio,
-                sortino_ratio,
-                calmar_ratio
-            FROM {table}
-            WHERE holding_period_years = %s 
+                a.symbol,
+                a.start_date,
+                a.end_date,
+                a.annualized_return_pct,
+                a.total_return_pct,
+                a.volatility_pct,
+                a.max_drawdown_pct,
+                a.{loss_column} as max_loss_pct,
+                a.sharpe_ratio,
+                a.sortino_ratio,
+                a.calmar_ratio
+            FROM {table} a
+            JOIN asset_metadata m ON a.symbol = m.symbol
+            WHERE a.holding_period_years = %s 
             {strategy_filter}
             {asset_type_filter}
             {treasury_exclusion}
+            {exchange_filter}
             {start_date_filter}
             {advanced_filter_str}
-            AND symbol IN ({symbols_placeholder})
-            ORDER BY symbol, start_date
+            AND a.symbol IN ({symbols_placeholder})
+            ORDER BY a.symbol, a.start_date
         """, params)
         
         results = cursor.fetchall()
         
-        # Organize data by symbol
+        # Organize data by symbol\
         time_series_data = {}
         stats_data = {}
         
@@ -708,6 +810,78 @@ def get_asset_details():
             'error': str(e),
             'traceback': traceback.format_exc()
         }), 500
+
+# ADD this new endpoint to your api.py
+
+# REPLACE your /api/exchanges/list endpoint with this corrected version
+
+# REPLACE your /api/exchanges/list endpoint with this corrected version
+
+@app.route('/api/exchanges/list', methods=['GET'])
+def get_exchanges_list():
+    """Get list of all available exchanges from database"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Build exclusion list properly
+        exclusion_placeholders = ','.join(['%s'] * len(EXCLUDED_SYMBOLS))
+        
+        # Get distinct exchanges from asset_metadata, then join with exchanges table for names
+        cursor.execute(f"""
+            SELECT 
+                am.exchange,
+                COALESCE(e.name, am.exchange) as exchange_name,
+                e.country_name
+            FROM (
+                SELECT DISTINCT exchange,
+                    CASE 
+                        WHEN exchange IS NULL THEN 0
+                        WHEN exchange = 'NASDAQ' THEN 1
+                        WHEN exchange = 'NYSE' THEN 2
+                        ELSE 3
+                    END as sort_order
+                FROM asset_metadata
+                WHERE symbol NOT IN ({exclusion_placeholders})
+            ) AS am
+            LEFT JOIN exchanges e ON am.exchange = e.exchange
+            ORDER BY am.sort_order, am.exchange
+        """, EXCLUDED_SYMBOLS)
+        
+        results = cursor.fetchall()
+        exchanges = []
+        
+        for row in results:
+            exchange_code = row[0]
+            exchange_name = row[1]
+            country_name = row[2]
+            
+            if exchange_code is None:
+                # NULL exchange (crypto, commodities)
+                exchanges.append({
+                    'code': 'NULL',
+                    'name': 'Non-Exchange Assets (Crypto, Commodities)'
+                })
+            else:
+                # Build display name: "Exchange Name (Country)" or just "Exchange Name" if no country
+                if country_name:
+                    display_name = f"{exchange_name} ({country_name})"
+                else:
+                    display_name = exchange_name
+                
+                exchanges.append({
+                    'code': exchange_code,
+                    'name': display_name
+                })
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({'success': True, 'exchanges': exchanges})
+    except Exception as e:
+        import traceback
+        return jsonify({'success': False, 'error': str(e), 'traceback': traceback.format_exc()}), 500
+
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
