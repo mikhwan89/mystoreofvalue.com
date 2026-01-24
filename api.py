@@ -9,8 +9,12 @@ import psycopg2
 import os
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
+from datetime import datetime, timedelta
+import re
 
 EXCLUDED_SYMBOLS = ['^FVX', '^TYX', '^TNX', 'ZBUSD', 'ZFUSD', 'ZNUSD', 'ZTUSD', '^VXTLT', '^IRX']
+comment_rate_limit = {}
+
 
 load_dotenv()
 
@@ -886,6 +890,234 @@ def get_exchanges_list():
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({'status': 'ok', 'message': 'API is running'})
+
+def is_rate_limited(ip_address):
+    """Check if IP has exceeded rate limit (max 3 comments per hour)"""
+    now = datetime.now()
+    if ip_address in comment_rate_limit:
+        timestamps = comment_rate_limit[ip_address]
+        # Remove timestamps older than 1 hour
+        timestamps = [ts for ts in timestamps if now - ts < timedelta(hours=1)]
+        comment_rate_limit[ip_address] = timestamps
+        return len(timestamps) >= 3
+    return False
+
+def add_rate_limit(ip_address):
+    """Add current timestamp to rate limit tracker"""
+    now = datetime.now()
+    if ip_address not in comment_rate_limit:
+        comment_rate_limit[ip_address] = []
+    comment_rate_limit[ip_address].append(now)
+
+def is_spam(text):
+    """Basic spam detection"""
+    # Check for excessive links
+    link_count = len(re.findall(r'http[s]?://', text))
+    if link_count > 2:
+        return True
+    
+    # Check for excessive repeated characters
+    if re.search(r'(.)\1{10,}', text):
+        return True
+    
+    # Check for common spam keywords
+    spam_keywords = ['viagra', 'cialis', 'casino', 'lottery', 'crypto-profit', 'investment-guaranteed']
+    text_lower = text.lower()
+    if any(keyword in text_lower for keyword in spam_keywords):
+        return True
+    
+    return False
+
+
+@app.route('/api/comments', methods=['GET', 'POST'])
+def handle_comments():
+    """Handle comment submission and retrieval"""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    if request.method == 'POST':
+        # Get client IP (check X-Forwarded-For for proxied requests)
+        ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
+        if ',' in ip_address:
+            ip_address = ip_address.split(',')[0].strip()
+        
+        # Check rate limit
+        if is_rate_limited(ip_address):
+            cur.close()
+            conn.close()
+            return jsonify({
+                'success': False,
+                'error': 'Too many comments. Please wait an hour before submitting again.'
+            }), 429
+        
+        # Get data
+        data = request.json
+        name = data.get('name', '').strip()[:50]  # Max 50 chars
+        email = data.get('email', '').strip()[:100]  # Max 100 chars
+        text = data.get('text', '').strip()[:1000]  # Max 1000 chars
+        page = data.get('page', 'methodology').strip()
+        
+        # Validation
+        if not name or len(name) < 2:
+            cur.close()
+            conn.close()
+            return jsonify({'success': False, 'error': 'Name must be at least 2 characters'}), 400
+        
+        if not text or len(text) < 10:
+            cur.close()
+            conn.close()
+            return jsonify({'success': False, 'error': 'Comment must be at least 10 characters'}), 400
+        
+        # Email validation (if provided)
+        if email and not re.match(r'^[\w\.-]+@[\w\.-]+\.\w+$', email):
+            cur.close()
+            conn.close()
+            return jsonify({'success': False, 'error': 'Invalid email format'}), 400
+        
+        # Spam check
+        if is_spam(text):
+            cur.close()
+            conn.close()
+            return jsonify({'success': False, 'error': 'Comment appears to be spam'}), 400
+        
+        try:
+            # Insert comment (pending approval)
+            cur.execute("""
+                INSERT INTO comments (name, email, text, page, ip_address, approved, created_at)
+                VALUES (%s, %s, %s, %s, %s, FALSE, NOW())
+            """, (name, email, text, page, ip_address))
+            conn.commit()
+            
+            # Add to rate limit
+            add_rate_limit(ip_address)
+            
+            return jsonify({
+                'success': True,
+                'message': 'Comment submitted successfully. It will appear after moderation.'
+            })
+        except Exception as e:
+            conn.rollback()
+            print(f"Error inserting comment: {e}")
+            return jsonify({'success': False, 'error': 'Database error'}), 500
+        finally:
+            cur.close()
+            conn.close()
+    
+    else:  # GET request - get approved comments
+        page = request.args.get('page', 'methodology')
+        
+        try:
+            # Get approved comments
+            cur.execute("""
+                SELECT name, text, created_at
+                FROM comments
+                WHERE page = %s AND approved = TRUE
+                ORDER BY created_at DESC
+                LIMIT 50
+            """, (page,))
+            
+            comments = []
+            for row in cur.fetchall():
+                comments.append({
+                    'name': row[0],
+                    'text': row[1],
+                    'created_at': row[2].isoformat()
+                })
+            
+            return jsonify({
+                'success': True,
+                'comments': comments
+            })
+        except Exception as e:
+            print(f"Error fetching comments: {e}")
+            return jsonify({'success': False, 'error': 'Database error'}), 500
+        finally:
+            cur.close()
+            conn.close()
+
+@app.route('/api/comments/pending', methods=['GET'])
+def get_pending_comments():
+    """Get all pending comments for moderation"""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    try:
+        cur.execute("""
+            SELECT id, name, email, text, page, created_at
+            FROM comments
+            WHERE approved = FALSE
+            ORDER BY created_at ASC
+        """)
+        
+        comments = []
+        for row in cur.fetchall():
+            comments.append({
+                'id': row[0],
+                'name': row[1],
+                'email': row[2],
+                'text': row[3],
+                'page': row[4],
+                'created_at': row[5].isoformat()
+            })
+        
+        return jsonify({
+            'success': True,
+            'comments': comments
+        })
+    except Exception as e:
+        print(f"Error fetching pending comments: {e}")
+        return jsonify({'success': False, 'error': 'Database error'}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+@app.route('/api/comments/<int:comment_id>/approve', methods=['POST'])
+def approve_comment(comment_id):
+    """Approve a pending comment"""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    try:
+        cur.execute("""
+            UPDATE comments
+            SET approved = TRUE, approved_at = NOW()
+            WHERE id = %s
+        """, (comment_id,))
+        conn.commit()
+        
+        if cur.rowcount == 0:
+            return jsonify({'success': False, 'error': 'Comment not found'}), 404
+        
+        return jsonify({'success': True, 'message': 'Comment approved'})
+    except Exception as e:
+        conn.rollback()
+        print(f"Error approving comment: {e}")
+        return jsonify({'success': False, 'error': 'Database error'}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+@app.route('/api/comments/<int:comment_id>', methods=['DELETE'])
+def delete_comment(comment_id):
+    """Delete a comment"""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    
+    try:
+        cur.execute("DELETE FROM comments WHERE id = %s", (comment_id,))
+        conn.commit()
+        
+        if cur.rowcount == 0:
+            return jsonify({'success': False, 'error': 'Comment not found'}), 404
+        
+        return jsonify({'success': True, 'message': 'Comment deleted'})
+    except Exception as e:
+        conn.rollback()
+        print(f"Error deleting comment: {e}")
+        return jsonify({'success': False, 'error': 'Database error'}), 500
+    finally:
+        cur.close()
+        conn.close()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
