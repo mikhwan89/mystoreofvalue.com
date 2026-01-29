@@ -17,7 +17,7 @@ DB_CONFIG = {
     'port': os.getenv('DB_PORT', '5432')
 }
 
-MAX_WORKERS = 7
+MAX_WORKERS = 3
 BATCH_SIZE = 5000
 
 # Thread-safe counters

@@ -24,7 +24,7 @@ DB_CONFIG = {
 # Configuration
 HOLDING_PERIODS = [3, 4, 5, 6, 7, 8, 9, 10]  # Years
 RISK_FREE_RATE = 0.02
-MAX_WORKERS = 7
+MAX_WORKERS = 3
 BATCH_SIZE = 1000
 LOOKBACK_DAYS = 10  # Update last 10 days worth of start dates
 
