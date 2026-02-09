@@ -25,7 +25,7 @@ HOLDING_PERIODS = [3, 4, 5, 6, 7, 8, 9, 10]  # Years
 DCA_FREQUENCIES = ['daily', 'weekly', 'monthly']
 START_DATE = '2010-01-01'
 RISK_FREE_RATE = 0.02
-MAX_WORKERS = 3
+MAX_WORKERS = 1
 BATCH_SIZE = 1000
 INVESTMENT_PER_PERIOD = 100  # $100 per DCA purchase
 

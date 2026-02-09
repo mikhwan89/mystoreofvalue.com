@@ -22,7 +22,7 @@ DB_CONFIG = {
 }
 
 # Performance settings
-MAX_WORKERS = 3
+MAX_WORKERS = 1
 BATCH_SIZE = 5000
 RETRY_DELAY = 2
 MAX_RETRIES = 3

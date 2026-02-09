@@ -21,7 +21,7 @@ DB_CONFIG = {
 }
 
 # Performance settings
-MAX_WORKERS = 6
+MAX_WORKERS = 1
 RETRY_DELAY = 2
 MAX_RETRIES = 3
 

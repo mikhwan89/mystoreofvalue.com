@@ -26,7 +26,7 @@ DB_CONFIG = {
 
 # Performance configuration for N2-standard-8
 # Optimized for high-volume stock data ingestion (66k+ stocks)
-MAX_WORKERS = 4  # Use 7 threads for API calls (87.5% of 8 cores, leave 1 for system)
+MAX_WORKERS = 1  # Use 7 threads for API calls (87.5% of 8 cores, leave 1 for system)
 BATCH_SIZE = 5000  # Larger batches for stock data (more efficient for large volumes)
 API_RETRY_DELAY = 2  # Seconds to wait on rate limit
 MAX_RETRIES = 3

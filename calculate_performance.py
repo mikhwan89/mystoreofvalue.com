@@ -24,7 +24,7 @@ DB_CONFIG = {
 HOLDING_PERIODS = [3, 4, 5, 6, 7, 8, 9, 10]  # Years
 START_DATE = '2010-01-01'
 RISK_FREE_RATE = 0.02  # 2% annual risk-free rate (US Treasury)
-MAX_WORKERS = 3  # Parallel processing
+MAX_WORKERS = 1  # Parallel processing
 BATCH_SIZE = 1000
 
 def get_db_connection():
