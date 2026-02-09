@@ -1120,4 +1120,5 @@ def delete_comment(comment_id):
         conn.close()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    port = int(os.getenv('API_PORT', 5000))  # Default to 5000 if not set
+    app.run(host='0.0.0.0', port=port, debug=False)

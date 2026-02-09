@@ -1,0 +1,51 @@
+# Claude Code Ignore File
+# Prevents Claude from reading unnecessary or sensitive files
+
+# Environment & Secrets
+.env
+.env.*
+*.key
+*.pem
+
+# Logs (can be very large)
+logs/
+*.log
+
+# Backups (large database dumps)
+backups/
+*.sql
+*.dump
+*.backup
+
+# Python Cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
