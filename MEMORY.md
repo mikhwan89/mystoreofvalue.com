@@ -9,9 +9,10 @@
 - ✅ Nginx virtual host for staging subdomain
 
 ### High Priority Next Steps
-1. **Staging-specific cron jobs** - Add environment flags to automation scripts
-2. **Monitoring & alerting** - Set up alerts for cron failures and API errors
-3. **Database connection pooling** - Improve API performance and resource usage
+1. 🚨 **Google Secret Manager migration** - CRITICAL: Replace .env files with GCP Secret Manager for secure credential management
+2. **Staging-specific cron jobs** - Add environment flags to automation scripts
+3. **Monitoring & alerting** - Set up alerts for cron failures and API errors
+4. **Database connection pooling** - Improve API performance and resource usage
 
 ### Project Context
 - Production site: mystoreofvalue.com (financial analysis platform)

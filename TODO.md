@@ -1,6 +1,6 @@
 # MyStoreOfValue.com - Project TODO List
 
-## ✅ Completed Tasks (4/21)
+## ✅ Completed Tasks (4/22)
 
 - [x] Set up staging environment infrastructure (directories, database, ports)
 - [x] Implement environment-based configuration (.env.production, .env.staging)
@@ -9,7 +9,16 @@
 
 ---
 
-## 📋 Pending Tasks (17/21)
+## 📋 Pending Tasks (18/22)
+
+### 🔐 CRITICAL PRIORITY - Security
+
+- [ ] **#1** 🚨 Migrate from .env files to Google Secret Manager
+  - Replace hardcoded credentials in .env files with GCP Secret Manager
+  - Update scripts (api.py, fetch_asset_light.py, etc.) to retrieve secrets at runtime
+  - Remove .env files from server after migration
+  - Enable secure credential management without exposing API keys/passwords
+  - **Benefits:** Enhanced security, no credentials in code/files, centralized secret rotation
 
 ### 🎯 High Priority - Infrastructure & Operations
 
@@ -97,9 +106,10 @@
 
 ## 📊 Progress Tracker
 
-**Overall Progress:** 4/21 tasks completed (19%)
+**Overall Progress:** 4/22 tasks completed (18%)
 
 **By Category:**
+- Security: 0/1 completed (0%) 🚨 **CRITICAL**
 - Infrastructure & Operations: 4/7 completed (57%)
 - New Features & Content: 0/4 completed (0%)
 - Marketing & Growth: 0/2 completed (0%)
@@ -111,9 +121,9 @@
 
 ## 🎯 Recommended Next Steps
 
-1. **#15** - Staging cron jobs (enable safe testing of automation)
-2. **#16** - Monitoring/alerting (operational visibility)
-3. **#11** - Connection pooling (performance improvement)
+1. **#1** 🚨 - Google Secret Manager migration (CRITICAL SECURITY - eliminate .env files)
+2. **#15** - Staging cron jobs (enable safe testing of automation)
+3. **#16** - Monitoring/alerting (operational visibility)
 
 ---
 
