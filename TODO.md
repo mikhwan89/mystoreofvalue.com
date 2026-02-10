@@ -1,6 +1,6 @@
 # MyStoreOfValue.com - Project TODO List
 
-## ✅ Completed Tasks (4/22)
+## ✅ Completed Tasks (4/26)
 
 - [x] Set up staging environment infrastructure (directories, database, ports)
 - [x] Implement environment-based configuration (.env.production, .env.staging)
@@ -9,16 +9,42 @@
 
 ---
 
-## 📋 Pending Tasks (18/22)
+## 📋 Pending Tasks (22/26)
+
+### 🚀 PREREQUISITES - Complete Staging Environment
+
+**Must complete BEFORE Secret Manager migration:**
+
+- [ ] **#1** Configure DNS on GoDaddy for staging subdomain
+  - Add A record: `staging.mystoreofvalue.com` → GCP server IP
+  - Wait for DNS propagation (5-30 minutes)
+  - Verify with: `nslookup staging.mystoreofvalue.com`
+
+- [ ] **#2** Obtain SSL certificate for staging subdomain
+  - Run: `sudo certbot --nginx -d staging.mystoreofvalue.com`
+  - Auto-renews via certbot systemd timer
+  - **Note:** DNS must be configured first
+
+- [ ] **#3** Deploy front-end to staging directory
+  - Copy front-end files to `/var/www/mystoreofvalue-staging`
+  - Update API base URL in front-end to point to staging API (port 5001)
+  - Test static file serving
+
+- [ ] **#4** Configure and test staging API on port 5001
+  - Ensure `api.py` uses staging .env configuration
+  - Start staging API: `python api.py` (with staging env vars)
+  - Verify API responds on localhost:5001
+  - Test via staging.mystoreofvalue.com/api/
 
 ### 🔐 CRITICAL PRIORITY - Security
 
-- [ ] **#1** 🚨 Migrate from .env files to Google Secret Manager
+- [ ] **#5** 🚨 Migrate from .env files to Google Secret Manager
   - Replace hardcoded credentials in .env files with GCP Secret Manager
   - Update scripts (api.py, fetch_asset_light.py, etc.) to retrieve secrets at runtime
   - Remove .env files from server after migration
   - Enable secure credential management without exposing API keys/passwords
   - **Benefits:** Enhanced security, no credentials in code/files, centralized secret rotation
+  - **⚠️ Must complete staging setup (#1-4) first to test safely**
 
 ### 🎯 High Priority - Infrastructure & Operations
 
@@ -106,9 +132,10 @@
 
 ## 📊 Progress Tracker
 
-**Overall Progress:** 4/22 tasks completed (18%)
+**Overall Progress:** 4/26 tasks completed (15%)
 
 **By Category:**
+- **Staging Prerequisites: 0/4 completed (0%)** 🚀 **MUST DO FIRST**
 - Security: 0/1 completed (0%) 🚨 **CRITICAL**
 - Infrastructure & Operations: 4/7 completed (57%)
 - New Features & Content: 0/4 completed (0%)
@@ -121,9 +148,15 @@
 
 ## 🎯 Recommended Next Steps
 
-1. **#1** 🚨 - Google Secret Manager migration (CRITICAL SECURITY - eliminate .env files)
-2. **#15** - Staging cron jobs (enable safe testing of automation)
-3. **#16** - Monitoring/alerting (operational visibility)
+**IMMEDIATE (Complete staging setup):**
+1. **#1** - Configure DNS on GoDaddy (A record for staging.mystoreofvalue.com)
+2. **#2** - Get SSL certificate with certbot
+3. **#3** - Deploy front-end to staging
+4. **#4** - Configure staging API on port 5001
+
+**THEN (After staging works):**
+5. **#5** 🚨 - Google Secret Manager migration (CRITICAL SECURITY)
+6. **#19** - Staging cron jobs (environment-aware automation)
 
 ---
 
